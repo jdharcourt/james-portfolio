@@ -1,11 +1,13 @@
 import Nav from "@/components/Nav";
 import Reveal from "@/components/Reveal";
 import CountUp from "@/components/CountUp";
+import Cursor from "@/components/Cursor";
 import { projects, toolbox, builds, socials } from "@/lib/data";
 
 export default function Home() {
   return (
     <>
+      <Cursor />
       <div className="grain" aria-hidden />
       <Nav />
 
