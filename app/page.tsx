@@ -205,7 +205,7 @@ export default function Home() {
 
       <footer className="footer">
         <span>© {new Date().getFullYear()} James Harcourt</span>
-        <span>Built with Next.js · No templates</span>
+        <span>Built with Next.js - And a little help from my good friend Claude</span>
       </footer>
     </>
   );
