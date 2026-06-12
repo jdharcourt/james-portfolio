@@ -151,8 +151,7 @@ export default function Home() {
               <p className="about__text">
                 I care about systems that are <em>reliable</em>, <em>low-cost</em> and
                 genuinely usable — not just demos. I&apos;m comfortable across embedded
-                CircuitPython and C++, native iOS in Swift, and the web glue that ties it
-                together.
+                CircuitPython and C++, native iOS in Swift, and the web. I also enjoy the hands-on side of things: soldering, 3D printing, and designing PCBs.
               </p>
             </Reveal>
             <Reveal as="aside" className="about__panel" delay={120}>
