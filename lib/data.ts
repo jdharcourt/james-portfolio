@@ -27,7 +27,7 @@ export const projects: Project[] = [
     year: "2025",
     accent: "cyan",
     description:
-      "An iOS app exploring diabetes management and data visualisation — the software-side companion to the GlucoBit hardware work, focused on making continuous glucose data clear and actionable on the phone.",
+      "An iOS app to support diabetes management and data visualisation",
     stack: ["Swift", "SwiftUI", "HealthKit"],
     href: "https://github.com/jdharcourt/DiabeTech",
   },
@@ -41,6 +41,16 @@ export const projects: Project[] = [
     stack: ["C++", "Microcontroller", "Sensors", "Motor Control"],
     href: "https://github.com/jdharcourt/Solar-Tracking",
   },
+  {
+    name: "Pointy R1",
+    tag: "Thrust Vector Controlled model rocket",
+    year: "2026",
+    accent: "lime",
+    description:
+      "A thrust vector controlled model rocket with telemetry and flight data analysis.",
+    stack: ["Python", "PCB Design", "CAD", "Microcontroller", "Sensors", "Motor Control"],
+    href: "https://github.com/BasilAmin/pointy_rocket",
+  }
 ];
 
 export const toolbox = [
