@@ -2,6 +2,7 @@ import Nav from "@/components/Nav";
 import Reveal from "@/components/Reveal";
 import CountUp from "@/components/CountUp";
 import Cursor from "@/components/Cursor";
+import ArrowIcon from "@/components/ArrowIcon";
 import { projects, toolbox, builds, socials } from "@/lib/data";
 
 export default function Home() {
@@ -41,7 +42,7 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="btn btn--ghost"
               >
-                GitHub ↗
+                GitHub <ArrowIcon />
               </a>
             </div>
           </Reveal>
@@ -115,7 +116,7 @@ export default function Home() {
                   </ul>
                   <div className="card__links">
                     <a href={p.href} target="_blank" rel="noopener noreferrer">
-                      Code ↗
+                      Code <ArrowIcon size={10} />
                     </a>
                   </div>
                 </div>
@@ -130,7 +131,7 @@ export default function Home() {
                 </p>
                 <div className="card__links">
                   <a href={socials.github} target="_blank" rel="noopener noreferrer">
-                    View profile ↗
+                    View profile <ArrowIcon size={10} />
                   </a>
                 </div>
               </div>
@@ -189,7 +190,7 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="btn btn--primary"
               >
-                LinkedIn ↗
+                LinkedIn <ArrowIcon />
               </a>
               <a
                 href={socials.github}
@@ -197,7 +198,7 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="btn btn--ghost"
               >
-                GitHub ↗
+                GitHub <ArrowIcon />
               </a>
             </div>
           </Reveal>
