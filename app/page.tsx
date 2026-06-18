@@ -94,7 +94,7 @@ export default function Home() {
         {/* Work */}
         <section className="section" id="work">
           <Reveal className="section__head">
-            <h2 className="section__title">Selected work</h2>
+            <h2 className="section__title">Selected projects</h2>
             <p className="section__sub">
               A mix of hardware, firmware and apps I&apos;ve built end-to-end.
             </p>
@@ -219,6 +219,7 @@ export default function Home() {
 
       <footer className="footer">
         <span>© {new Date().getFullYear()} James Harcourt</span>
+        <span>hi[at]jamesharcourt[dot]ie</span>
         <span>Built with Next.js - And a little help from my good friend Claude</span>
       </footer>
     </>

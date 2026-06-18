@@ -539,6 +539,9 @@ main {
 .timeline__dot[data-type="achievement"] {
   background: var(--accent-2);
 }
+.timeline__dot[data-type="experience"] {
+  background: var(--accent-3);
+}
 .timeline__body {
   background: var(--card);
   border: 1px solid var(--border);
@@ -578,6 +581,15 @@ main {
   background: color-mix(in srgb, var(--accent-2) 15%, transparent);
   color: var(--accent-2);
 }
+.timeline__badge[data-type="experience"] {
+  background: color-mix(in srgb, var(--accent-3) 15%, transparent);
+  color: var(--accent-3);
+}    
+.timeline__badge[data-type="education"] {
+  background: color-mix(in srgb, var(--accent-4) 15%, transparent);
+  color: var(--accent-4);
+}    
+
 .timeline__role {
   font-family: var(--font-display);
   font-size: 1rem;

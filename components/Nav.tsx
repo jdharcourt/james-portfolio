@@ -26,7 +26,7 @@ export default function Nav() {
         JH<span>.</span>
       </a>
       <nav className="nav__links">
-        <a href="#work">Work</a>
+        <a href="#work">Projects</a>
         <a href="#experience">Experience</a>
         <a href="#about">About</a>
         <a href="#contact">Contact</a>

@@ -79,7 +79,7 @@ export type Experience = {
   org: string;
   period: string;
   description: string;
-  type: "work" | "achievement";
+  type: "work" | "achievement" | "experience" | "education";
 };
 
 export const experience: Experience[] = [
@@ -89,7 +89,7 @@ export const experience: Experience[] = [
     period: "Jun 2026 – Present",
     description:
       "Selected as one of 36 cohort members for Ireland's most competitive Youth Tech Accelerator, developing GlucoBit into a market-ready product.",
-    type: "work",
+    type: "experience",
   },
   {
     role: "Lifeguard",
@@ -103,38 +103,46 @@ export const experience: Experience[] = [
     org: "Stripe Young Scientist & Technology Exhibition",
     period: "Jan 2026",
     description:
-      "Entered GlucoBit — a standalone blood glucose visualisation and alert device — and placed in the Technology category.",
+      "Entered GlucoBit — a standalone blood glucose visualisation and alert device — and placed in the Technology category, and won the Medtronic special award",
     type: "achievement",
-  },
-  {
-    role: "Work Experience",
-    org: "Head Diagnostics",
-    period: "2025",
-    description:
-      "Hands-on internship at a medical device company, gaining exposure to regulated healthcare engineering, device testing workflows, and product development in a clinical context.",
-    type: "work",
   },
   {
     role: "Pharmacy Assistant",
     org: "Meaghers Pharmacy",
-    period: "2024 – 2025",
+    period: "Feb 2026",
     description:
       "Assisted customers with product queries, managed stock levels with daily inventory checks, and operated tills in a busy retail pharmacy environment.",
-    type: "work",
+    type: "experience",
   },
   {
-    role: "Most Commercial Award",
+    role: "Work Experience",
+    org: "Head Diagnostics",
+    period: "Nov 2025",
+    description:
+      "Hands-on internship at a medical device company, gaining exposure to regulated healthcare engineering, device testing workflows, and product development in a clinical context.",
+    type: "experience",
+  },
+  {
+    role: "Completed Junior Cycle",
+    org: "Castleknock College",
+    period: "Jun 2025",
+    description:
+      "Completed the Junior Cycle curriculum with a focus on STEM subjects, achieving 7x distinctions and 2x higher merits",
+    type: "education",
+  },
+  {
+    role: "Most Commercial Potential Award",
     org: "Local Enterprise Offices — National Student Enterprise Awards",
     period: "May 2023",
     description:
-      "Competed at the National Student Enterprise Awards and won the Most Commercial prize.",
+      "Competed at the National Student Enterprise Awards and won the Most Commercial potential prize.",
     type: "achievement",
   },
   {
     role: "Competitor",
-    org: "SciFest CLG",
+    org: "SciFest",
     period: "May 2023",
-    description: "Presented a science project at SciFest, Ireland's national STEM competition for students.",
+    description: "Presented a science project at SciFest, Ireland's national STEM competition for students. Presented solar tracking as a method to improve solar panel efficiency, winning the Eirgrid sustainable future award.",
     type: "achievement",
   },
 ];

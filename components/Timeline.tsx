@@ -18,7 +18,14 @@ export default function Timeline() {
                 className="timeline__badge"
                 data-type={item.type}
               >
-                {item.type === "work" ? "Experience" : "Achievement"}
+                {
+                  {
+                    work: "Work",
+                    achievement: "Achievement",
+                    experience: "Experience",
+                    education: "Education",
+                  }[item.type]
+                }
               </span>
             </div>
             <h3 className="timeline__role">{item.role}</h3>
