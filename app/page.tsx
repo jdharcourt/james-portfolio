@@ -3,6 +3,7 @@ import Reveal from "@/components/Reveal";
 import CountUp from "@/components/CountUp";
 import Cursor from "@/components/Cursor";
 import ArrowIcon from "@/components/ArrowIcon";
+import Timeline from "@/components/Timeline";
 import { projects, toolbox, builds, socials } from "@/lib/data";
 
 export default function Home() {
@@ -137,6 +138,17 @@ export default function Home() {
               </div>
             </Reveal>
           </div>
+        </section>
+
+        {/* Experience */}
+        <section className="section" id="experience">
+          <Reveal className="section__head">
+            <h2 className="section__title">Experience</h2>
+            <p className="section__sub">
+              Work, internships and achievements.
+            </p>
+          </Reveal>
+          <Timeline />
         </section>
 
         {/* About */}

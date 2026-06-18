@@ -74,6 +74,71 @@ export const builds = [
   "Hardware prototypes",
 ];
 
+export type Experience = {
+  role: string;
+  org: string;
+  period: string;
+  description: string;
+  type: "work" | "achievement";
+};
+
+export const experience: Experience[] = [
+  {
+    role: "Patch Accelerator Participant",
+    org: "Dogpatch Labs",
+    period: "Jun 2026 – Present",
+    description:
+      "Selected as one of 36 cohort members for Ireland's most competitive Youth Tech Accelerator, developing GlucoBit into a market-ready product.",
+    type: "work",
+  },
+  {
+    role: "Lifeguard",
+    org: "Aura Leisure",
+    period: "Jun 2026 – Present",
+    description: "Lifeguarding and Water Safety Training across Aura facilities.",
+    type: "work",
+  },
+  {
+    role: "Competitor — Technology Category",
+    org: "Stripe Young Scientist & Technology Exhibition",
+    period: "Jan 2026",
+    description:
+      "Entered GlucoBit — a standalone blood glucose visualisation and alert device — and placed in the Technology category.",
+    type: "achievement",
+  },
+  {
+    role: "Work Experience",
+    org: "Head Diagnostics",
+    period: "2025",
+    description:
+      "Hands-on internship at a medical device company, gaining exposure to regulated healthcare engineering, device testing workflows, and product development in a clinical context.",
+    type: "work",
+  },
+  {
+    role: "Pharmacy Assistant",
+    org: "Meaghers Pharmacy",
+    period: "2024 – 2025",
+    description:
+      "Assisted customers with product queries, managed stock levels with daily inventory checks, and operated tills in a busy retail pharmacy environment.",
+    type: "work",
+  },
+  {
+    role: "Most Commercial Award",
+    org: "Local Enterprise Offices — National Student Enterprise Awards",
+    period: "May 2023",
+    description:
+      "Competed at the National Student Enterprise Awards and won the Most Commercial prize.",
+    type: "achievement",
+  },
+  {
+    role: "Competitor",
+    org: "SciFest CLG",
+    period: "May 2023",
+    description: "Presented a science project at SciFest, Ireland's national STEM competition for students.",
+    type: "achievement",
+  },
+];
+
 export const socials = {
   github: "https://github.com/jdharcourt",
   linkedin: "https://www.linkedin.com/in/james-harcourt-3131473ab/",

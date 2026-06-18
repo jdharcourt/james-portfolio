@@ -27,6 +27,7 @@ export default function Nav() {
       </a>
       <nav className="nav__links">
         <a href="#work">Work</a>
+        <a href="#experience">Experience</a>
         <a href="#about">About</a>
         <a href="#contact">Contact</a>
       </nav>
