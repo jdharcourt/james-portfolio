@@ -1,3 +1,4 @@
+import { BackgroundParallax } from "@/components/BackgroundParallax";
 import Nav from "@/components/Nav";
 import Reveal from "@/components/Reveal";
 import CountUp from "@/components/CountUp";
@@ -9,6 +10,7 @@ import { projects, toolbox, builds, socials } from "@/lib/data";
 export default function Home() {
   return (
     <>
+      <BackgroundParallax />
       <Cursor />
       <div className="grain" aria-hidden />
       <Nav />
