@@ -5,6 +5,7 @@ import CountUp from "@/components/CountUp";
 import Cursor from "@/components/Cursor";
 import ArrowIcon from "@/components/ArrowIcon";
 import Timeline from "@/components/Timeline";
+import { PcbModel } from "@/components/PcbModel";
 import { projects, toolbox, builds, socials } from "@/lib/data";
 
 export default function Home() {
@@ -18,55 +19,67 @@ export default function Home() {
       <main id="top">
         {/* Hero */}
         <section className="hero">
-          <Reveal as="div">
-            <p className="hero__eyebrow">Hardware × Software Engineer</p>
+          <Reveal as="div" className="hero__model" delay={120}>
+            <PcbModel />
           </Reveal>
-          <Reveal as="div" delay={80}>
-            <h1 className="hero__title">
-              James <span className="grad">Harcourt</span>
-            </h1>
-          </Reveal>
-          <Reveal as="div" delay={160}>
-            <p className="hero__lead">
-              I design and build <strong>embedded systems and health-tech</strong> —
-              from low-cost IoT glucose monitors to solar trackers and iOS companion
-              apps. Bringing hardware, firmware and clean interfaces together into things
-              people can actually use.
-            </p>
-          </Reveal>
-          <Reveal as="div" delay={240}>
-            <div className="hero__cta">
-              <a href="#work" className="btn btn--primary">
-                View my work
-              </a>
-              <a
-                href={socials.github}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn--ghost"
-              >
-                GitHub <ArrowIcon />
-              </a>
+          <div className="hero__grid">
+            <div>
+              <Reveal as="div">
+                <p className="hero__eyebrow">Hardware × Software Engineer</p>
+              </Reveal>
+              <Reveal as="div" delay={80}>
+                <h1 className="hero__title">
+                  James <span className="grad">Harcourt</span>
+                </h1>
+              </Reveal>
+              <Reveal as="div" delay={160}>
+                <p className="hero__lead">
+                  I design and build <strong>embedded systems and health-tech</strong> —
+                  from low-cost IoT glucose monitors to solar trackers and iOS companion
+                  apps. Bringing hardware, firmware and clean interfaces together into things
+                  people can actually use.
+                </p>
+              </Reveal>
+              <Reveal as="div" delay={210}>
+                <p className="hero__note">
+                  Current obsession: turning messy sensor work into calm little devices.
+                </p>
+              </Reveal>
+              <Reveal as="div" delay={240}>
+                <div className="hero__cta">
+                  <a href="#work" className="btn btn--primary">
+                    View my work
+                  </a>
+                  <a
+                    href={socials.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn--ghost"
+                  >
+                    GitHub <ArrowIcon />
+                  </a>
+                </div>
+              </Reveal>
+              <Reveal as="div" delay={320}>
+                <div className="hero__stats">
+                  <div>
+                    <span className="stat__num">
+                      <CountUp to={4} />
+                    </span>
+                    <span className="stat__label">Shipped projects</span>
+                  </div>
+                  <div>
+                    <span className="stat__num">Embedded</span>
+                    <span className="stat__label">+ iOS + Web</span>
+                  </div>
+                  <div>
+                    <span className="stat__num">IoT</span>
+                    <span className="stat__label">Health-tech focus</span>
+                  </div>
+                </div>
+              </Reveal>
             </div>
-          </Reveal>
-          <Reveal as="div" delay={320}>
-            <div className="hero__stats">
-              <div>
-                <span className="stat__num">
-                  <CountUp to={4} />
-                </span>
-                <span className="stat__label">Shipped projects</span>
-              </div>
-              <div>
-                <span className="stat__num">Embedded</span>
-                <span className="stat__label">+ iOS + Web</span>
-              </div>
-              <div>
-                <span className="stat__num">IoT</span>
-                <span className="stat__label">Health-tech focus</span>
-              </div>
-            </div>
-          </Reveal>
+          </div>
         </section>
 
         {/* Marquee */}

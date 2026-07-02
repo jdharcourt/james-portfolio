@@ -197,6 +197,20 @@ main {
   margin-top: 24px;
   padding: 80px 32px 60px;
   position: relative;
+  overflow: hidden;
+}
+.hero__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 40px;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+.hero__grid a,
+.hero__grid button {
+  pointer-events: auto;
 }
 .hero__eyebrow {
   font-family: var(--font-display);
@@ -225,6 +239,42 @@ main {
 .hero__lead strong {
   color: var(--text);
   font-weight: 600;
+}
+.hero__model {
+  position: absolute;
+  top: 128px;
+  right: 32px;
+  width: clamp(360px, 35vw, 520px);
+  height: 420px;
+  opacity: 0.7;
+  z-index: 0;
+  pointer-events: auto;
+}
+.pcb-model {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.pcb-model__canvas,
+.pcb-model__canvas canvas {
+  position: absolute;
+  inset: 0;
+}
+.pcb-model__canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+.pcb-model__canvas canvas:active {
+  cursor: grabbing;
+}
+.hero__note {
+  max-width: 520px;
+  margin-top: 18px;
+  color: var(--faint);
+  font-size: 0.96rem;
 }
 .hero__cta {
   display: flex;
@@ -725,8 +775,21 @@ main {
   .nav__links {
     display: none;
   }
+  .hero__grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
   .hero {
     padding: 56px 20px 40px;
+  }
+  .hero__model {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 100%;
+    height: 340px;
+    margin-bottom: 20px;
+    opacity: 0.72;
   }
   .hero__stats {
     gap: 32px;
