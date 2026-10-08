@@ -7,6 +7,7 @@ export type Project = {
   stack: string[];
   href: string;
   featured?: boolean;
+  demo?: string;
 };
 
 export const projects: Project[] = [
@@ -17,9 +18,56 @@ export const projects: Project[] = [
     accent: "lime",
     featured: true,
     description:
-      "A low-cost IoT system for non-invasive glucose visualisation. A CircuitPython device pulls live readings from the Dexcom cloud over WiFi, renders them on a colour LCD, and fires audible + LED alarms on lows — paired with a native iOS companion app over Bluetooth.",
+      "A low-cost IoT system for non-invasive glucose visualisation. A CircuitPython device pulls live readings from the Dexcom cloud over WiFi, renders them on a colour LCD, and fires audible + LED alarms on lows, paired with a native iOS companion app over Bluetooth.",
     stack: ["CircuitPython", "Swift / SwiftUI", "BLE", "Custom PCB", "OTA Updates"],
     href: "https://github.com/jdharcourt/GlucoBit",
+  },
+  {
+    name: "CertifyMe",
+    tag: "PCB tooling",
+    year: "2026",
+    accent: "lime",
+    description: "A KiCad plugin and CLI that links component datasheets, generates priced bills of materials, and verifies parts against DigiKey. Built to take the repetitive work out of preparing a PCB.",
+    stack: ["Python", "KiCad", "DigiKey API", "BOM verification"],
+    href: "https://github.com/jdharcourt/CertifyMe",
+  },
+  {
+    name: "Gate Lab",
+    tag: "Learning tools",
+    year: "2026",
+    accent: "amber",
+    description: "An interactive Boolean logic workbench. Draw gate circuits, build expressions, generate truth tables, and practise logic problems directly in the browser.",
+    stack: ["TypeScript", "Next.js", "Boolean logic"],
+    href: "https://github.com/jdharcourt/gate-lab",
+    demo: "https://gate-lab-taupe.vercel.app",
+  },
+  {
+    name: "CodePaper",
+    tag: "Learning tools",
+    year: "2026",
+    accent: "amber",
+    description: "A browser-based Python IDE for Leaving Certificate Computer Science practice. Run code locally with Pyodide and check answers against exam marking rubrics.",
+    stack: ["TypeScript", "Python", "Pyodide", "Web Workers"],
+    href: "https://github.com/jdharcourt/CodePaper",
+    demo: "https://code-paper-blush.vercel.app",
+  },
+  {
+    name: "ytascii",
+    tag: "Terminal tools",
+    year: "2026",
+    accent: "lime",
+    description: "Play videos as live truecolour ASCII art in the terminal, with audio. Frames are streamed and converted in real time using Python, yt-dlp, and ffmpeg.",
+    stack: ["Python", "ffmpeg", "yt-dlp", "CLI"],
+    href: "https://github.com/jdharcourt/ytascii",
+  },
+  {
+    name: "Zana",
+    tag: "Health-tech",
+    year: "2026",
+    accent: "lime",
+    description: "A Swift project exploring health and medical report assistance.",
+    stack: ["Swift", "Health-tech"],
+    href: "https://github.com/jdharcourt/zana",
   },
   {
     name: "DiabeTech",
@@ -37,7 +85,7 @@ export const projects: Project[] = [
     year: "2024",
     accent: "amber",
     description:
-      "A dual-axis solar tracking system in C++ — sensing light direction and driving motors to keep a panel aligned with the sun for maximum yield. Hands-on embedded control, sensors and actuation.",
+      "A dual-axis solar tracking system in C++, sensing light direction and driving motors to keep a panel aligned with the sun for maximum yield. Hands-on embedded control, sensors and actuation.",
     stack: ["C++", "Microcontroller", "Sensors", "Motor Control"],
     href: "https://github.com/jdharcourt/Solar-Tracking",
   },
@@ -64,6 +112,9 @@ export const toolbox = [
   "I2S / SPI / ADC",
   "OTA Updates",
   "Git",
+  "Python",
+  "TypeScript / Next.js",
+  "KiCad",
 ];
 
 export const builds = [
@@ -84,11 +135,18 @@ export type Experience = {
 
 export const experience: Experience[] = [
   {
+    role: "Co-founder",
+    org: "Equilibrium",
+    period: "2026",
+    description: "Co-founded an autonomous retrofit building management system during Patch. The team deployed custom environmental sensors, a live dashboard, and predictive controls at Dogpatch Labs.",
+    type: "work",
+  },
+  {
     role: "Patch Accelerator Participant",
     org: "Dogpatch Labs",
-    period: "Jun 2026 – Present",
+    period: "Summer 2026",
     description:
-      "Selected as one of 36 cohort members for Ireland's most competitive Youth Tech Accelerator, developing GlucoBit into a market-ready product.",
+      "Selected as one of 36 cohort members for Ireland's most competitive Youth Tech Accelerator, developing GlucoBit and co-founding Equilibrium, with a building management prototype deployed at Dogpatch Labs.",
     type: "experience",
   },
   {
@@ -99,11 +157,11 @@ export const experience: Experience[] = [
     type: "work",
   },
   {
-    role: "Competitor — Technology Category",
+    role: "Competitor, Technology Category",
     org: "Stripe Young Scientist & Technology Exhibition",
     period: "Jan 2026",
     description:
-      "Entered GlucoBit — a standalone blood glucose visualisation and alert device — and placed in the Technology category, and won the Medtronic special award",
+      "Entered GlucoBit, a standalone blood glucose visualisation and alert device, placed in the Technology category and won the Medtronic special award.",
     type: "achievement",
   },
   {
@@ -132,7 +190,7 @@ export const experience: Experience[] = [
   },
   {
     role: "Most Commercial Potential Award",
-    org: "Local Enterprise Offices — National Student Enterprise Awards",
+    org: "Local Enterprise Offices, National Student Enterprise Awards",
     period: "May 2023",
     description:
       "Competed at the National Student Enterprise Awards and won the Most Commercial potential prize.",
@@ -150,4 +208,14 @@ export const experience: Experience[] = [
 export const socials = {
   github: "https://github.com/jdharcourt",
   linkedin: "https://www.linkedin.com/in/james-harcourt-3131473ab/",
+};
+
+export const profile = {
+  name: "James Harcourt",
+  role: "Hardware & software engineer",
+  location: "Dublin, Ireland",
+  email: "hi@jamesharcourt.ie",
+  intro: "I design and build embedded systems and health-tech, from low-cost IoT glucose monitors to solar trackers and iOS companion apps. Bringing hardware, firmware and clean interfaces together into things people can actually use.",
+  about: "I'm an engineer who likes to live at the boundary between hardware and software. Most of my work starts with a real-world problem, like making glucose data glanceable for someone living with diabetes, and follows it all the way down: schematic and PCB, firmware on the metal, the cloud calls, and the app in your hand.",
+  approach: "I care about systems that are reliable, low-cost and usable. I'm comfortable across embedded CircuitPython and C++, native iOS in Swift, and the web. I also enjoy the hands-on side of things: soldering, 3D printing, and designing PCBs.",
 };

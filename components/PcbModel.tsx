@@ -1,155 +1,154 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 export function PcbModel() {
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const rotation = useRef({ x: 0, y: 0, reset: 0 });
+  const materials = useRef<THREE.Material[]>([]);
+  const [wireframe, setWireframe] = useState(false);
+  const [status, setStatus] = useState("Loading PCB…");
 
   useEffect(() => {
-    if (!canvasRef.current) {
-      return;
-    }
+    materials.current.forEach(material => {
+      if ("wireframe" in material) material.wireframe = wireframe;
+    });
+  }, [wireframe]);
 
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    let renderer: THREE.WebGLRenderer;
+    try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
+    catch { setStatus("3D preview unavailable in this browser."); return; }
     let disposed = false;
-    const host = canvasRef.current;
+    let visible = true;
+    let frameId = 0;
+    let lastTime = 0;
+    let scrollAngle = 0;
+    let lastReset = 0;
+    let activePointer: number | null = null;
+    let pointerX = 0;
+    let pointerY = 0;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const scene = new THREE.Scene();
-    const loader = new GLTFLoader();
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -10, 10);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const camera = new THREE.OrthographicCamera(-1.5, 1.5, 1.5, -1.5, 0.1, 100);
+    camera.position.set(0, 0, 8);
     const group = new THREE.Group();
-    const dragRotation = { x: 0, y: 0 };
-    let activePointerId: number | null = null;
-    let lastPointerX = 0;
-    let lastPointerY = 0;
-    let scrollRotation = 0;
+    scene.add(group);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x827765, 3));
+    const light = new THREE.DirectionalLight(0xffffff, 4);
+    light.position.set(3, 4, 5);
+    scene.add(light);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    const canvas = renderer.domElement;
+    canvas.tabIndex = 0;
+    canvas.setAttribute("role", "img");
+    canvas.setAttribute("aria-label", "GlucoBit PCB. Drag or use arrow keys to rotate. Scroll the page to turn the board.");
+    host.appendChild(canvas);
+
     const resize = () => {
       const { width, height } = host.getBoundingClientRect();
+      if (!width || !height) return;
       renderer.setSize(width, height, false);
-      camera.left = -width / height;
-      camera.right = width / height;
-      camera.top = 1;
-      camera.bottom = -1;
+      camera.left = -1.5 * width / height;
+      camera.right = 1.5 * width / height;
       camera.updateProjectionMatrix();
     };
-    const frame = () => {
-      if (disposed) {
-        return;
-      }
-
-      scrollRotation += (window.scrollY * 0.0012 - scrollRotation) * 0.04;
-      group.rotation.x = -0.48 + dragRotation.x;
-      group.rotation.y = scrollRotation + dragRotation.y;
+    const frame = (time: number) => {
+      if (disposed) return;
+      frameId = requestAnimationFrame(frame);
+      if (!visible || document.hidden) { lastTime = time; return; }
+      if (rotation.current.reset !== lastReset) { scrollAngle = 0; lastReset = rotation.current.reset; }
+      const rect = host.closest(".intro")?.getBoundingClientRect() || host.getBoundingClientRect();
+      const progress = reducedMotion.matches ? 0 : Math.max(0, Math.min(1, -rect.top / rect.height));
+      const delta = Math.min((time - lastTime) / 1000, 0.05);
+      lastTime = time;
+      scrollAngle += (progress * Math.PI * 1.5 - scrollAngle) * (1 - Math.exp(-delta * 7));
+      group.rotation.set(0.95 + rotation.current.x, 0.35 + scrollAngle + rotation.current.y, -0.15 + progress * 0.18);
       renderer.render(scene, camera);
-      requestAnimationFrame(frame);
     };
-    const handlePointerDown = (event: PointerEvent) => {
-      activePointerId = event.pointerId;
-      lastPointerX = event.clientX;
-      lastPointerY = event.clientY;
-      renderer.domElement.setPointerCapture(event.pointerId);
+    const pointerDown = (event: PointerEvent) => {
+      if (!event.isPrimary || event.button !== 0) return;
+      activePointer = event.pointerId; pointerX = event.clientX; pointerY = event.clientY;
+      canvas.setPointerCapture(event.pointerId);
     };
-    const handlePointerMove = (event: PointerEvent) => {
-      if (event.pointerId !== activePointerId) {
-        return;
-      }
-
-      dragRotation.y += (event.clientX - lastPointerX) * 0.008;
-      dragRotation.x = Math.max(-0.5, Math.min(0.55, dragRotation.x + (event.clientY - lastPointerY) * 0.006));
-      lastPointerX = event.clientX;
-      lastPointerY = event.clientY;
+    const pointerMove = (event: PointerEvent) => {
+      if (activePointer !== event.pointerId) return;
+      rotation.current.y += (event.clientX - pointerX) * 0.008;
+      rotation.current.x += (event.clientY - pointerY) * 0.008;
+      pointerX = event.clientX; pointerY = event.clientY;
     };
-    const handlePointerUp = (event: PointerEvent) => {
-      if (event.pointerId !== activePointerId) {
-        return;
-      }
-
-      activePointerId = null;
-      renderer.domElement.releasePointerCapture(event.pointerId);
+    const pointerUp = (event: PointerEvent) => {
+      if (activePointer !== event.pointerId) return;
+      activePointer = null;
+      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
     };
-
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.domElement.style.touchAction = "none";
-    renderer.domElement.setAttribute("aria-label", "Interactive 3D model of the GlucoBit PCB");
-    host.appendChild(renderer.domElement);
-    renderer.domElement.addEventListener("pointerdown", handlePointerDown);
-    renderer.domElement.addEventListener("pointermove", handlePointerMove);
-    renderer.domElement.addEventListener("pointerup", handlePointerUp);
-    renderer.domElement.addEventListener("pointercancel", handlePointerUp);
-
-    scene.add(group);
-
-    camera.position.set(0, 0, 0.4);
-    camera.lookAt(0, 0, 0);
-
+    const keyDown = (event: KeyboardEvent) => {
+      if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+      event.preventDefault();
+      if (event.key === "ArrowLeft") rotation.current.y -= 0.15;
+      if (event.key === "ArrowRight") rotation.current.y += 0.15;
+      if (event.key === "ArrowUp") rotation.current.x -= 0.15;
+      if (event.key === "ArrowDown") rotation.current.x += 0.15;
+    };
+    canvas.addEventListener("pointerdown", pointerDown);
+    canvas.addEventListener("pointermove", pointerMove);
+    canvas.addEventListener("pointerup", pointerUp);
+    canvas.addEventListener("pointercancel", pointerUp);
+    canvas.addEventListener("keydown", keyDown);
+    const observer = new ResizeObserver(resize);
+    observer.observe(host);
+    const intersection = new IntersectionObserver(entries => { visible = entries[0].isIntersecting; });
+    intersection.observe(host);
+    const disposeModel = (model: THREE.Object3D) => model.traverse(object => {
+      if (!(object instanceof THREE.Mesh)) return;
+      object.geometry.dispose();
+      (Array.isArray(object.material) ? object.material : [object.material]).forEach(material => {
+        for (const value of Object.values(material)) if (value instanceof THREE.Texture) value.dispose();
+        material.dispose();
+      });
+    });
+    new GLTFLoader().load("/glucobit-v2.glb", gltf => {
+      if (disposed) { disposeModel(gltf.scene); return; }
+      const box = new THREE.Box3().setFromObject(gltf.scene);
+      const size = box.getSize(new THREE.Vector3());
+      gltf.scene.position.sub(box.getCenter(new THREE.Vector3()));
+      group.scale.setScalar(2.65 / Math.max(size.x, size.y, size.z));
+      gltf.scene.traverse(object => {
+        if (!(object instanceof THREE.Mesh)) return;
+        const list = Array.isArray(object.material) ? object.material : [object.material];
+        list.forEach(material => { if ("wireframe" in material) material.wireframe = false; });
+        materials.current.push(...list);
+      });
+      group.add(gltf.scene);
+      setStatus("Scroll to turn · drag to inspect");
+    }, undefined, () => { if (!disposed) setStatus("Couldn't load the PCB. Explore the source below."); });
     resize();
-    window.addEventListener("resize", resize);
-
-    loader.load(
-      "/glucobit-v2.glb",
-      (gltf) => {
-        if (disposed) {
-          return;
-        }
-
-        let index = 0;
-        gltf.scene.updateMatrixWorld(true);
-        gltf.scene.traverse((object) => {
-          if (!(object instanceof THREE.Mesh) || !object.geometry) {
-            return;
-          }
-
-          object.material = new THREE.MeshBasicMaterial({
-            color: index % 5 === 0 ? 0x82d8ad : 0x9fdff2,
-            transparent: true,
-            opacity: object.name.toLowerCase().includes("board") ? 0.34 : 0.68,
-            wireframe: true,
-          });
-          index += 1;
-        });
-        const box = new THREE.Box3().setFromObject(gltf.scene);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        gltf.scene.position.sub(center);
-        group.add(gltf.scene);
-        group.rotation.z = -0.2;
-
-        const distance = Math.max(size.x, size.y, size.z) * 1.55;
-        camera.position.set(0, -distance * 0.35, distance);
-        camera.zoom = 16;
-        camera.lookAt(0, 0, 0);
-        camera.updateProjectionMatrix();
-      },
-      undefined,
-      () => {},
-    );
-
-    frame();
-
+    frameId = requestAnimationFrame(frame);
     return () => {
       disposed = true;
-      window.removeEventListener("resize", resize);
-      renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
-      renderer.domElement.removeEventListener("pointermove", handlePointerMove);
-      renderer.domElement.removeEventListener("pointerup", handlePointerUp);
-      renderer.domElement.removeEventListener("pointercancel", handlePointerUp);
-      renderer.dispose();
-      group.traverse((object) => {
-        if (object instanceof THREE.Mesh) {
-          object.geometry.dispose();
-          const materials = Array.isArray(object.material) ? object.material : [object.material];
-          materials.forEach((material) => material.dispose());
-        }
-      });
-      renderer.domElement.remove();
+      cancelAnimationFrame(frameId);
+      observer.disconnect(); intersection.disconnect();
+      canvas.removeEventListener("pointerdown", pointerDown);
+      canvas.removeEventListener("pointermove", pointerMove);
+      canvas.removeEventListener("pointerup", pointerUp);
+      canvas.removeEventListener("pointercancel", pointerUp);
+      canvas.removeEventListener("keydown", keyDown);
+      disposeModel(group);
+      materials.current = [];
+      renderer.dispose(); canvas.remove();
     };
   }, []);
 
-  return (
-    <div className="pcb-model" data-cursor="hover">
-      <div className="pcb-model__canvas" ref={canvasRef} />
-    </div>
-  );
+  return <figure className="pcb-panel">
+    <div className="pcb-heading"><span>GlucoBit / PCB v2</span><span>3D preview</span></div>
+    <div className="pcb-canvas" ref={hostRef} />
+    <figcaption><div><strong>Small board. Real purpose.</strong><p>{status}</p></div><div className="pcb-controls"><button disabled={status === "Loading PCB…"} aria-pressed={wireframe} onClick={() => setWireframe(value => !value)}>{wireframe ? "Solid" : "Wireframe"}</button><button onClick={() => { rotation.current = { x: 0, y: 0, reset: rotation.current.reset + 1 }; }}>Reset</button></div></figcaption>
+    <div className="pcb-specs"><span>WiFi + BLE</span><span>Colour LCD</span><a href="https://github.com/jdharcourt/GlucoBit" target="_blank" rel="noopener noreferrer">View project ↗</a></div>
+  </figure>;
 }

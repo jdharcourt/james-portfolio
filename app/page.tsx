@@ -1,242 +1,42 @@
-import { BackgroundParallax } from "@/components/BackgroundParallax";
-import Nav from "@/components/Nav";
-import Reveal from "@/components/Reveal";
-import CountUp from "@/components/CountUp";
-import Cursor from "@/components/Cursor";
-import ArrowIcon from "@/components/ArrowIcon";
-import Timeline from "@/components/Timeline";
+import Link from "next/link";
+import { Nav } from "@/components/Nav";
+import { Footer } from "@/components/Footer";
+import { Timeline } from "@/components/Timeline";
 import { PcbModel } from "@/components/PcbModel";
-import { projects, toolbox, builds, socials } from "@/lib/data";
+import { Terminal } from "@/components/Terminal";
+import { Contributions } from "@/components/Contributions";
+import { projects, toolbox, builds, socials, profile } from "@/lib/data";
+
+export const dynamic = "force-dynamic";
 
 export default function Home() {
-  return (
-    <>
-      <BackgroundParallax />
-      <Cursor />
-      <div className="grain" aria-hidden />
-      <Nav />
-
-      <main id="top">
-        {/* Hero */}
-        <section className="hero">
-          <Reveal as="div" className="hero__model" delay={120}>
-            <PcbModel />
-          </Reveal>
-          <div className="hero__grid">
-            <div>
-              <Reveal as="div">
-                <p className="hero__eyebrow">Hardware × Software Engineer</p>
-              </Reveal>
-              <Reveal as="div" delay={80}>
-                <h1 className="hero__title">
-                  James <span className="grad">Harcourt</span>
-                </h1>
-              </Reveal>
-              <Reveal as="div" delay={160}>
-                <p className="hero__lead">
-                  I design and build <strong>embedded systems and health-tech</strong> —
-                  from low-cost IoT glucose monitors to solar trackers and iOS companion
-                  apps. Bringing hardware, firmware and clean interfaces together into things
-                  people can actually use.
-                </p>
-              </Reveal>
-              <Reveal as="div" delay={210}>
-                <p className="hero__note">
-                  Current obsession: turning messy sensor work into calm little devices.
-                </p>
-              </Reveal>
-              <Reveal as="div" delay={240}>
-                <div className="hero__cta">
-                  <a href="#work" className="btn btn--primary">
-                    View my work
-                  </a>
-                  <a
-                    href={socials.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn--ghost"
-                  >
-                    GitHub <ArrowIcon />
-                  </a>
-                </div>
-              </Reveal>
-              <Reveal as="div" delay={320}>
-                <div className="hero__stats">
-                  <div>
-                    <span className="stat__num">
-                      <CountUp to={4} />
-                    </span>
-                    <span className="stat__label">Shipped projects</span>
-                  </div>
-                  <div>
-                    <span className="stat__num">Embedded</span>
-                    <span className="stat__label">+ iOS + Web</span>
-                  </div>
-                  <div>
-                    <span className="stat__num">IoT</span>
-                    <span className="stat__label">Health-tech focus</span>
-                  </div>
-                </div>
-              </Reveal>
-            </div>
-          </div>
-        </section>
-
-        {/* Marquee */}
-        <div className="marquee" aria-hidden>
-          <div className="marquee__track">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <span key={i} className="marquee__group">
-                {[
-                  "CircuitPython",
-                  "Swift",
-                  "C++",
-                  "BLE",
-                  "PCB Design",
-                  "IoT",
-                  "Embedded Firmware",
-                  "SwiftUI",
-                ].map((w) => (
-                  <span key={w}>
-                    {w} <i>•</i>
-                  </span>
-                ))}
-              </span>
-            ))}
-          </div>
+  return <>
+    <Nav />
+    <main id="top">
+      <section className="intro" aria-labelledby="intro-title">
+        <div className="intro-copy">
+          <p className="intro-role">{profile.role} <span> / {profile.location}</span></p>
+          <h1 id="intro-title">James<br />Harcourt<span>.</span></h1>
+          <p className="intro-description">{profile.intro}</p>
+          <p className="intro-note">Current obsession: turning messy sensor work into calm little devices.</p>
+          <div className="actions"><a className="button button-primary" href="#work">Explore projects <span aria-hidden="true">↓</span></a><Link className="button" href="/resume">View résumé <span aria-hidden="true">↗</span></Link></div>
+          <div className="intro-current"><span className="status-dot" aria-hidden="true" />Co-founder at <a href="https://ie.linkedin.com/company/equilibriumhvac" target="_blank" rel="noopener noreferrer">Equilibrium ↗</a></div>
         </div>
-
-        {/* Work */}
-        <section className="section" id="work">
-          <Reveal className="section__head">
-            <h2 className="section__title">Selected projects</h2>
-            <p className="section__sub">
-              A mix of hardware, firmware and apps I&apos;ve built end-to-end.
-            </p>
-          </Reveal>
-
-          <div className="projects">
-            {projects.map((p, i) => (
-              <Reveal as="article" key={p.name} delay={i * 80}>
-                <div className="card" data-accent={p.accent}>
-                  <div className="card__top">
-                    <span className="card__tag">{p.tag}</span>
-                    <span className="card__year">{p.year}</span>
-                  </div>
-                  <h3 className="card__title">{p.name}</h3>
-                  <p className="card__desc">{p.description}</p>
-                  <ul className="card__stack">
-                    {p.stack.map((s) => (
-                      <li key={s}>{s}</li>
-                    ))}
-                  </ul>
-                  <div className="card__links">
-                    <a href={p.href} target="_blank" rel="noopener noreferrer">
-                      Code <ArrowIcon size={10} />
-                    </a>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-
-            <Reveal as="article" delay={projects.length * 80}>
-              <div className="card card--cta">
-                <h3 className="card__title">More on GitHub</h3>
-                <p className="card__desc">
-                  Personal site builds, experiments and works in progress.
-                </p>
-                <div className="card__links">
-                  <a href={socials.github} target="_blank" rel="noopener noreferrer">
-                    View profile <ArrowIcon size={10} />
-                  </a>
-                </div>
-              </div>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* Experience */}
-        <section className="section" id="experience">
-          <Reveal className="section__head">
-            <h2 className="section__title">Experience</h2>
-            <p className="section__sub">
-              Work, internships and achievements.
-            </p>
-          </Reveal>
-          <Timeline />
-        </section>
-
-        {/* About */}
-        <section className="section about" id="about">
-          <div className="about__grid">
-            <Reveal>
-              <h2 className="section__title">About</h2>
-              <p className="about__text">
-                I&apos;m an engineer who likes to live at the boundary between hardware
-                and software. Most of my work starts with a real-world problem — like
-                making glucose data glanceable for someone living with diabetes — and
-                follows it all the way down: schematic and PCB, firmware on the metal,
-                the cloud calls, and the app in your hand.
-              </p>
-              <p className="about__text">
-                I care about systems that are <em>reliable</em>, <em>low-cost</em> and
-                genuinely usable — not just demos. I&apos;m comfortable across embedded
-                CircuitPython and C++, native iOS in Swift, and the web. I also enjoy the hands-on side of things: soldering, 3D printing, and designing PCBs.
-              </p>
-            </Reveal>
-            <Reveal as="aside" className="about__panel" delay={120}>
-              <h4>Toolbox</h4>
-              <div className="chips">
-                {toolbox.map((t) => (
-                  <span key={t}>{t}</span>
-                ))}
-              </div>
-              <h4>What I build</h4>
-              <div className="chips chips--alt">
-                {builds.map((b) => (
-                  <span key={b}>{b}</span>
-                ))}
-              </div>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* Contact */}
-        <section className="section contact" id="contact">
-          <Reveal className="contact__inner">
-            <p className="contact__eyebrow">Get in touch</p>
-            <h2 className="contact__title">Let&apos;s build something.</h2>
-            <p className="contact__sub">
-              Open to opportunities and collaborations in hardware, embedded systems and
-              health-tech.
-            </p>
-            <div className="contact__links">
-              <a
-                href={socials.linkedin}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn--primary"
-              >
-                LinkedIn <ArrowIcon />
-              </a>
-              <a
-                href={socials.github}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn--ghost"
-              >
-                GitHub <ArrowIcon />
-              </a>
-            </div>
-          </Reveal>
-        </section>
-      </main>
-
-      <footer className="footer">
-        <span>© {new Date().getFullYear()} James Harcourt</span>
-        <span>hi[at]jamesharcourt[dot]ie</span>
-        <span>Built with Next.js - And a little help from my good friend Claude</span>
-      </footer>
-    </>
-  );
+        <PcbModel />
+      </section>
+      <div className="interactive-row"><Terminal /><Contributions /></div>
+      <section className="section" id="work">
+        <div className="section-heading"><div><h2>Selected projects</h2><p>Hardware, firmware and apps, built end to end.</p></div><a className="text-link" href={socials.github} target="_blank" rel="noopener noreferrer">All repositories ↗</a></div>
+        <div className="project-list">{projects.map((project, index) => <article className="project" key={project.name}>
+          <span className="project-index">{String(index + 1).padStart(2, "0")}</span>
+          <div className="project-main"><div className="project-title"><h3><a href={project.href} target="_blank" rel="noopener noreferrer">{project.name}</a></h3><span>{project.tag.replace("Featured · ", "")}</span></div><p>{project.description}</p><ul className="project-stack">{project.stack.map(item => <li key={item}>{item}</li>)}</ul></div>
+          <div className="project-links"><span className="muted">{project.year}</span><a href={project.href} target="_blank" rel="noopener noreferrer" aria-label={`${project.name} source code`}>Code ↗</a>{project.demo && <a href={project.demo} target="_blank" rel="noopener noreferrer" aria-label={`Try ${project.name}`}>Try it ↗</a>}</div>
+        </article>)}</div>
+      </section>
+      <section className="section" id="about"><div className="about-grid"><div><h2>A little about me</h2><p>{profile.about}</p><p>{profile.approach}</p></div><aside className="toolbox"><h3>Toolbox</h3><ul>{toolbox.map(item => <li key={item}>{item}</li>)}</ul><h3>What I build</h3><p>{builds.join(" · ")}</p></aside></div></section>
+      <section className="section" id="experience"><div className="section-heading"><div><h2>Experience & achievements</h2><p>Work, internships, education and things learned along the way.</p></div><Link className="text-link" href="/resume">Full résumé ↗</Link></div><Timeline /></section>
+      <section className="contact" id="contact"><div><h2>Let&apos;s build something.</h2><p>Open to opportunities and collaborations in hardware, embedded systems and health-tech.</p></div><div className="actions"><a className="button button-primary" href={`mailto:${profile.email}`}>Get in touch ↗</a><a className="button" href={socials.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn ↗</a></div></section>
+    </main>
+    <Footer />
+  </>;
 }
