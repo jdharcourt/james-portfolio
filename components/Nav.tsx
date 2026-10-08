@@ -1,44 +1,37 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
-export default function Nav() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+export function Nav() {
+  const [theme, setTheme] = useState("light");
+  const pathname = usePathname();
 
   useEffect(() => {
-    const current =
-      (document.documentElement.dataset.theme as "dark" | "light") || "dark";
-    setTheme(current);
-  }, []);
-
-  function toggle() {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    document.documentElement.dataset.theme = next;
     try {
-      localStorage.setItem("theme", next);
+      const saved = localStorage.getItem("theme");
+      if (saved !== "dark" && saved !== "light") return;
+      setTheme(saved);
+      document.documentElement.dataset.theme = saved;
     } catch {}
-  }
+  }, []);
 
   return (
     <header className="nav">
-      <a href="#top" className="nav__brand">
-        JH<span>.</span>
-      </a>
-      <nav className="nav__links">
-        <a href="#work">Projects</a>
-        <a href="#experience">Experience</a>
-        <a href="#about">About</a>
-        <a href="#contact">Contact</a>
+      <Link href="/" className="nav-brand" aria-label="James Harcourt home">jh<span>.</span></Link>
+      <nav aria-label="Main navigation">
+        <Link href="/#work" aria-current={pathname === "/" ? "page" : undefined}>Projects</Link>
+        <Link href="/#about">About</Link>
+        <Link href="/resume" aria-current={pathname === "/resume" ? "page" : undefined}>Résumé</Link>
+        <Link href="/#terminal" className="nav-terminal">Terminal <span aria-hidden="true">↗</span></Link>
       </nav>
-      <button
-        className="theme-toggle"
-        onClick={toggle}
-        aria-label="Toggle colour theme"
-        data-theme={theme}
-      >
-        <span className="theme-toggle__dot" />
-      </button>
+      <button className="theme-toggle" aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`} onClick={() => {
+        const next = theme === "light" ? "dark" : "light";
+        setTheme(next);
+        document.documentElement.dataset.theme = next;
+        try { localStorage.setItem("theme", next); } catch {}
+      }}>{theme === "light" ? "◐" : "◑"}</button>
     </header>
   );
 }
