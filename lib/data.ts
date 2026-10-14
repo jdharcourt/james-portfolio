@@ -138,7 +138,7 @@ export const experience: Experience[] = [
     role: "Co-founder",
     org: "Equilibrium",
     period: "2026",
-    description: "Co-founded an autonomous retrofit building management system during Patch. The team deployed custom environmental sensors, a live dashboard, and predictive controls at Dogpatch Labs.",
+    description: "Co-founded Equilibrium during Patch to build an autonomous retrofit building management system. Worked across hardware and software with the team to deploy environmental sensors, a live dashboard and predictive HVAC controls at Dogpatch Labs.",
     type: "work",
   },
   {

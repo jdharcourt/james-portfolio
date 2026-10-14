@@ -19,7 +19,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-theme="light" suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth">
       <body suppressHydrationWarning>
         {children}
         {process.env.VERCEL === "1" && <Analytics />}
