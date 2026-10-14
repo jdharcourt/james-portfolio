@@ -65,6 +65,7 @@ export function PcbModel() {
       if (!visible || document.hidden) { lastTime = time; return; }
       if (rotation.current.reset !== lastReset) { scrollAngle = 0; lastReset = rotation.current.reset; }
       const rect = host.closest(".intro")?.getBoundingClientRect() || host.getBoundingClientRect();
+      if (!rect.height) return;
       const progress = reducedMotion.matches ? 0 : Math.max(0, Math.min(1, -rect.top / rect.height));
       const delta = Math.min((time - lastTime) / 1000, 0.05);
       lastTime = time;
@@ -126,7 +127,7 @@ export function PcbModel() {
         materials.current.push(...list);
       });
       group.add(gltf.scene);
-      setStatus("Scroll to turn · drag to inspect");
+      setStatus("Drag or use arrow keys to inspect");
     }, undefined, () => { if (!disposed) setStatus("Couldn't load the PCB. Explore the source below."); });
     resize();
     frameId = requestAnimationFrame(frame);
@@ -148,7 +149,7 @@ export function PcbModel() {
   return <figure className="pcb-panel">
     <div className="pcb-heading"><span>GlucoBit / PCB v2</span><span>3D preview</span></div>
     <div className="pcb-canvas" ref={hostRef} />
-    <figcaption><div><strong>Small board. Real purpose.</strong><p>{status}</p></div><div className="pcb-controls"><button disabled={status === "Loading PCB…"} aria-pressed={wireframe} onClick={() => setWireframe(value => !value)}>{wireframe ? "Solid" : "Wireframe"}</button><button onClick={() => { rotation.current = { x: 0, y: 0, reset: rotation.current.reset + 1 }; }}>Reset</button></div></figcaption>
-    <div className="pcb-specs"><span>WiFi + BLE</span><span>Colour LCD</span><a href="https://github.com/jdharcourt/GlucoBit" target="_blank" rel="noopener noreferrer">View project ↗</a></div>
+    <figcaption><p role="status">{status}</p><div className="pcb-controls"><button disabled={status === "Loading PCB…"} aria-pressed={wireframe} onClick={() => setWireframe(value => !value)}>{wireframe ? "Solid" : "Wireframe"}</button><button onClick={() => { rotation.current = { x: 0, y: 0, reset: rotation.current.reset + 1 }; }}>Reset</button></div></figcaption>
+    <div className="pcb-specs"><span>WiFi + BLE</span><span>Colour LCD</span></div>
   </figure>;
 }
