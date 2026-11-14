@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CONTRIBUTIONS_QUERY, parseContributions, parseGraphQLContributions } from "@/lib/github";
+import { CONTRIBUTIONS_QUERY, contributionRange as range, parseContributions, parseGraphQLContributions } from "@/lib/github";
 
 const LOGIN = "jdharcourt";
+const contributionRange = (year: number) => ({ login: LOGIN, ...range(year) });
 
 async function fromApi(token: string, year: number) {
   const response = await fetch("https://api.github.com/graphql", {
     method: "POST",
     headers: { Authorization: `bearer ${token}`, "Content-Type": "application/json", "User-Agent": "james-harcourt-portfolio" },
-    body: JSON.stringify({ query: CONTRIBUTIONS_QUERY, variables: { login: LOGIN, from: `${year}-01-01T00:00:00Z`, to: `${year}-12-31T23:59:59Z` } }),
+    body: JSON.stringify({ query: CONTRIBUTIONS_QUERY, variables: contributionRange(year) }),
     next: { revalidate: 3600 },
     signal: AbortSignal.timeout(10000),
   });

@@ -69,7 +69,7 @@ export function Contributions() {
   return <TooltipProvider delay={0}>
     <div className="card-shell">
       <div className="card-head">
-        <span className="label">Contribution calendar</span>
+        <span className="label">Contribution calendar{data && <> · {data.source === "api" ? "Public + private repos" : "Public profile"}</>}</span>
         <Select value={year} onValueChange={value => { if (typeof value === "number") setYear(value); }}>
           <SelectTrigger size="sm" aria-label="Year" className="font-mono">
             <SelectValue />

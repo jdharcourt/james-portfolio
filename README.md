@@ -29,7 +29,7 @@ API rate limits apply per server instance. Chat has limits of 6 requests per min
 
 To include private work, set `GITHUB_TOKEN` in the server environment (for example in Vercel project settings) to a token owned by `jdharcourt`: a classic token with the `read:user` and `repo` scopes, or a fine-grained token with read access to all repositories. The route then uses GitHub's GraphQL API, which counts private contributions and reports how many were to private repositories. Only counts are shown, never repository names. Without a token, or if the API fails, it falls back to the public profile calendar. That calendar also includes private counts if "Include private contributions on my profile" is turned on in GitHub settings.
 
-Hover a day for a tooltip, or focus the grid and use the arrow keys. Loading and upstream failures are shown with a retry action.
+Hover a day for a tooltip, or focus the grid and use the arrow keys. Loading and upstream failures are shown with a retry action. The card header says where the numbers came from: "Public + private repos" (API) or "Public profile" (fallback). If the live site shows "Public profile", `GITHUB_TOKEN` is missing or invalid in the deployment, and you need to redeploy after adding it.
 
 ## Design and UI
 
