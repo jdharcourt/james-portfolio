@@ -1,10 +1,11 @@
-import { experience } from "@/lib/data";
+import type { Entry } from "@/lib/data";
 
-export function Timeline() {
-  return <ol className="timeline" aria-label="Experience">
-    {experience.map((item) => <li key={`${item.org}-${item.role}`}>
-      <p className="timeline-period">{item.period}</p>
-      <div><h3>{item.role} <span className="timeline-company">at {item.org}</span></h3><p className="muted">{item.description}</p></div>
+export function Timeline({ entries, label, variant = "log" }: { entries: Entry[]; label: string; variant?: "log" | "resume" }) {
+  const Heading = variant === "log" ? "h4" : "h3";
+  return <ol className={variant === "log" ? "log-list" : "resume-list"} aria-label={label}>
+    {entries.map(item => <li key={`${item.org}-${item.title}`}>
+      <p className={variant === "log" ? "log-period" : "period"}>{item.period}</p>
+      <div><Heading>{item.title} <span>· {item.org}</span></Heading>{item.description && <p>{item.description}</p>}</div>
     </li>)}
   </ol>;
 }

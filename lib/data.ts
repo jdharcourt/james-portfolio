@@ -1,208 +1,183 @@
 export type Project = {
   name: string;
-  tag: string;
+  category: string;
   year: string;
-  accent: "lime" | "cyan" | "amber";
   description: string;
   stack: string[];
   href: string;
   featured?: boolean;
   demo?: string;
+  /** Shorter line for the résumé; defaults to the description. */
+  summary?: string;
+  /** Listed on the printable résumé as well as the home page. */
+  resume?: boolean;
 };
 
 export const projects: Project[] = [
   {
     name: "GlucoBit",
-    tag: "Featured · IoT Health",
+    category: "Health-tech",
     year: "2025–26",
-    accent: "lime",
     featured: true,
+    resume: true,
     description:
-      "A low-cost IoT system for non-invasive glucose visualisation. A CircuitPython device pulls live readings from the Dexcom cloud over WiFi, renders them on a colour LCD, and fires audible + LED alarms on lows, paired with a native iOS companion app over Bluetooth.",
-    stack: ["CircuitPython", "Swift / SwiftUI", "BLE", "Custom PCB", "OTA Updates"],
+      "A low-cost IoT glucose display. A CircuitPython device pulls live readings from the Dexcom cloud over WiFi, shows them on a colour LCD, and sounds audible and LED alarms on lows, with a native iOS companion app over Bluetooth. Placed 3rd in Technology and won the Medtronic Special Award at the 2026 Young Scientist exhibition.",
+    stack: ["CircuitPython", "Swift / SwiftUI", "BLE", "Custom PCB", "OTA updates"],
+    summary: "Low-cost IoT glucose display with audible and LED low alarms and a native iOS companion app over Bluetooth, on a custom PCB.",
     href: "https://github.com/jdharcourt/GlucoBit",
   },
   {
     name: "CertifyMe",
-    tag: "PCB tooling",
+    category: "PCB tooling",
     year: "2026",
-    accent: "lime",
-    description: "A KiCad plugin and CLI that links component datasheets, generates priced bills of materials, and verifies parts against DigiKey. Built to take the repetitive work out of preparing a PCB.",
-    stack: ["Python", "KiCad", "DigiKey API", "BOM verification"],
+    resume: true,
+    description: "KiCad plugin and CLI that links datasheets, generates priced bills of materials and verifies parts against DigiKey.",
+    stack: ["Python", "KiCad", "DigiKey API"],
     href: "https://github.com/jdharcourt/CertifyMe",
   },
   {
-    name: "Gate Lab",
-    tag: "Learning tools",
+    name: "Pointy R1",
+    category: "Aerospace",
     year: "2026",
-    accent: "amber",
-    description: "An interactive Boolean logic workbench. Draw gate circuits, build expressions, generate truth tables, and practise logic problems directly in the browser.",
-    stack: ["TypeScript", "Next.js", "Boolean logic"],
+    resume: true,
+    description: "Thrust-vector-controlled model rocket with telemetry and flight data analysis.",
+    stack: ["PCB design", "CAD", "Python", "Control"],
+    href: "https://github.com/BasilAmin/pointy_rocket",
+  },
+  {
+    name: "Solar Tracker",
+    category: "Embedded",
+    year: "2023–24",
+    description: "Dual-axis tracker in C++ that senses light direction and drives motors to keep a panel facing the sun. Won the EirGrid Sustainable Future Award at SciFest.",
+    stack: ["C++", "Sensors", "Motor control"],
+    href: "https://github.com/jdharcourt/Solar-Tracking",
+  },
+  {
+    name: "Gate Lab",
+    category: "Learning tools",
+    year: "2026",
+    description: "Browser-based Boolean logic workbench: draw gate circuits, build expressions and generate truth tables.",
+    stack: ["TypeScript", "Next.js"],
     href: "https://github.com/jdharcourt/gate-lab",
     demo: "https://gate-lab-taupe.vercel.app",
   },
   {
     name: "CodePaper",
-    tag: "Learning tools",
+    category: "Learning tools",
     year: "2026",
-    accent: "amber",
-    description: "A browser-based Python IDE for Leaving Certificate Computer Science practice. Run code locally with Pyodide and check answers against exam marking rubrics.",
-    stack: ["TypeScript", "Python", "Pyodide", "Web Workers"],
+    description: "Browser Python IDE for Leaving Certificate Computer Science practice, checked against exam marking rubrics.",
+    stack: ["Python", "Pyodide", "TypeScript"],
     href: "https://github.com/jdharcourt/CodePaper",
     demo: "https://code-paper-blush.vercel.app",
   },
+];
+
+export const equilibrium = {
+  name: "Equilibrium",
+  role: "CEO & Co-founder",
+  period: "Jul 2026 – Present",
+  href: "https://equilibrium.ie",
+  linkedin: "https://ie.linkedin.com/company/equilibriumhvac",
+  summary:
+    "Predictive HVAC control for buildings without an effective building management system. Wireless room sensors and a local optimiser fit around the controls already in place, so older buildings get smarter without replacing working equipment.",
+  origin: "Founded during Patch ’26 with Beatrice Cesonyte, Moaz Refaei and Tommy Byrne; the first prototype ran at Dogpatch Labs.",
+  spec: [
+    { label: "Sense", text: "Temperature, humidity, CO₂ and occupancy in every room, with no new cabling or Wi-Fi." },
+    { label: "Predict", text: "An on-site optimiser blends schedules, weather and past behaviour, then tests actions on a digital model." },
+    { label: "Control", text: "Sends a bounded instruction to the existing panel; its protections and manual overrides stay in charge." },
+  ],
+  target: "Up to 30%",
+  targetLabel: "target reduction in total HVAC energy use",
+};
+
+export type Entry = {
+  title: string;
+  org: string;
+  period: string;
+  description?: string;
+};
+
+export const experience: Entry[] = [
   {
-    name: "ytascii",
-    tag: "Terminal tools",
-    year: "2026",
-    accent: "lime",
-    description: "Play videos as live truecolour ASCII art in the terminal, with audio. Frames are streamed and converted in real time using Python, yt-dlp, and ffmpeg.",
-    stack: ["Python", "ffmpeg", "yt-dlp", "CLI"],
-    href: "https://github.com/jdharcourt/ytascii",
+    title: "CEO & Co-founder",
+    org: "Equilibrium",
+    period: "Jul 2026 – Present",
+    description: "Leading a four-founder smart-building start-up: wireless sensing and local predictive control for existing commercial HVAC, targeting up to 30% lower HVAC energy use. Prototype deployed at Dogpatch Labs.",
   },
   {
-    name: "Zana",
-    tag: "Health-tech",
-    year: "2026",
-    accent: "lime",
-    description: "A Swift project exploring health and medical report assistance.",
-    stack: ["Swift", "Health-tech"],
-    href: "https://github.com/jdharcourt/zana",
+    title: "Patch Summer Programme",
+    org: "Dogpatch Labs",
+    period: "Summer 2026",
+    description: "One of 36 selected for Patch, Ireland’s youth tech accelerator. Seven weeks building with mentors including Dogpatch Labs, Stripe, OpenAI and Rethink Ireland; developed GlucoBit and founded Equilibrium.",
   },
   {
-    name: "DiabeTech",
-    tag: "iOS App",
-    year: "2025",
-    accent: "cyan",
-    description:
-      "An iOS app to support diabetes management and data visualisation",
-    stack: ["Swift", "SwiftUI", "HealthKit"],
-    href: "https://github.com/jdharcourt/DiabeTech",
+    title: "Lifeguard",
+    org: "Aura Leisure",
+    period: "Jun 2026 – Present",
+    description: "Lifeguarding and water safety across Aura facilities.",
   },
   {
-    name: "Solar Tracker",
-    tag: "Embedded",
-    year: "2024",
-    accent: "amber",
-    description:
-      "A dual-axis solar tracking system in C++, sensing light direction and driving motors to keep a panel aligned with the sun for maximum yield. Hands-on embedded control, sensors and actuation.",
-    stack: ["C++", "Microcontroller", "Sensors", "Motor Control"],
-    href: "https://github.com/jdharcourt/Solar-Tracking",
+    title: "Pharmacy Assistant",
+    org: "Meaghers Pharmacy",
+    period: "Feb 2026",
+    description: "Customer queries, daily stock checks and tills in a busy retail pharmacy.",
   },
   {
-    name: "Pointy R1",
-    tag: "Thrust Vector Controlled model rocket",
-    year: "2026",
-    accent: "lime",
-    description:
-      "A thrust vector controlled model rocket with telemetry and flight data analysis.",
-    stack: ["Python", "PCB Design", "CAD", "Microcontroller", "Sensors", "Motor Control"],
-    href: "https://github.com/BasilAmin/pointy_rocket",
-  }
+    title: "Work Experience",
+    org: "Head Diagnostics",
+    period: "Nov 2025",
+    description: "Medical-device company placement covering regulated engineering, device testing and product development.",
+  },
+];
+
+export const awards: Entry[] = [
+  {
+    title: "3rd in Technology & Medtronic Special Award",
+    org: "Stripe Young Scientist & Technology Exhibition",
+    period: "Jan 2026",
+    description: "Individual Transition Year entry with GlucoBit.",
+  },
+  {
+    title: "Most Commercial Potential",
+    org: "National Student Enterprise Awards",
+    period: "May 2023",
+  },
+  {
+    title: "EirGrid Sustainable Future Award",
+    org: "SciFest",
+    period: "May 2023",
+    description: "Dual-axis solar tracking to improve panel efficiency.",
+  },
+];
+
+export const education: Entry[] = [
+  {
+    title: "Transition Year",
+    org: "Castleknock College",
+    period: "2025 – 2026",
+    description: "Young Scientist, Patch and Equilibrium.",
+  },
+  {
+    title: "Junior Cycle",
+    org: "Castleknock College",
+    period: "Jun 2025",
+    description: "7 distinctions and 2 higher merits.",
+  },
 ];
 
 export const toolbox = [
   "CircuitPython",
-  "Swift",
-  "SwiftUI",
   "C++",
-  "BLE / Bluetooth",
-  "WiFi / HTTP APIs",
-  "PCB Design",
-  "I2S / SPI / ADC",
-  "OTA Updates",
-  "Git",
+  "Swift / SwiftUI",
   "Python",
   "TypeScript / Next.js",
-  "KiCad",
-];
-
-export const builds = [
-  "IoT devices",
-  "Health-tech",
-  "Embedded firmware",
-  "iOS apps",
-  "Hardware prototypes",
-];
-
-export type Experience = {
-  role: string;
-  org: string;
-  period: string;
-  description: string;
-  type: "work" | "achievement" | "experience" | "education";
-};
-
-export const experience: Experience[] = [
-  {
-    role: "Co-founder",
-    org: "Equilibrium",
-    period: "2026",
-    description: "Co-founded Equilibrium during Patch to build an autonomous retrofit building management system. Worked across hardware and software with the team to deploy environmental sensors, a live dashboard and predictive HVAC controls at Dogpatch Labs.",
-    type: "work",
-  },
-  {
-    role: "Patch Accelerator Participant",
-    org: "Dogpatch Labs",
-    period: "Summer 2026",
-    description:
-      "Selected as one of 36 cohort members for Ireland's most competitive Youth Tech Accelerator, developing GlucoBit and co-founding Equilibrium, with a building management prototype deployed at Dogpatch Labs.",
-    type: "experience",
-  },
-  {
-    role: "Lifeguard",
-    org: "Aura Leisure",
-    period: "Jun 2026 – Present",
-    description: "Lifeguarding and Water Safety Training across Aura facilities.",
-    type: "work",
-  },
-  {
-    role: "Competitor, Technology Category",
-    org: "Stripe Young Scientist & Technology Exhibition",
-    period: "Jan 2026",
-    description:
-      "Entered GlucoBit, a standalone blood glucose visualisation and alert device, placed in the Technology category and won the Medtronic special award.",
-    type: "achievement",
-  },
-  {
-    role: "Pharmacy Assistant",
-    org: "Meaghers Pharmacy",
-    period: "Feb 2026",
-    description:
-      "Assisted customers with product queries, managed stock levels with daily inventory checks, and operated tills in a busy retail pharmacy environment.",
-    type: "experience",
-  },
-  {
-    role: "Work Experience",
-    org: "Head Diagnostics",
-    period: "Nov 2025",
-    description:
-      "Hands-on internship at a medical device company, gaining exposure to regulated healthcare engineering, device testing workflows, and product development in a clinical context.",
-    type: "experience",
-  },
-  {
-    role: "Completed Junior Cycle",
-    org: "Castleknock College",
-    period: "Jun 2025",
-    description:
-      "Completed the Junior Cycle curriculum with a focus on STEM subjects, achieving 7x distinctions and 2x higher merits",
-    type: "education",
-  },
-  {
-    role: "Most Commercial Potential Award",
-    org: "Local Enterprise Offices, National Student Enterprise Awards",
-    period: "May 2023",
-    description:
-      "Competed at the National Student Enterprise Awards and won the Most Commercial potential prize.",
-    type: "achievement",
-  },
-  {
-    role: "Competitor",
-    org: "SciFest",
-    period: "May 2023",
-    description: "Presented a science project at SciFest, Ireland's national STEM competition for students. Presented solar tracking as a method to improve solar panel efficiency, winning the Eirgrid sustainable future award.",
-    type: "achievement",
-  },
+  "BLE",
+  "WiFi / HTTP APIs",
+  "I2S / SPI / ADC",
+  "OTA updates",
+  "KiCad / PCB design",
+  "3D printing",
+  "Git",
 ];
 
 export const socials = {
@@ -213,9 +188,11 @@ export const socials = {
 export const profile = {
   name: "James Harcourt",
   role: "Hardware & software engineer",
+  headline: "CEO & Co-founder, Equilibrium",
   location: "Dublin, Ireland",
   email: "hi@jamesharcourt.ie",
-  intro: "I design and build embedded systems and health-tech, from low-cost IoT glucose monitors to solar trackers and iOS companion apps. Bringing hardware, firmware and clean interfaces together into things people can actually use.",
-  about: "I'm an engineer who likes to live at the boundary between hardware and software. Most of my work starts with a real-world problem, like making glucose data glanceable for someone living with diabetes, and follows it all the way down: schematic and PCB, firmware on the metal, the cloud calls, and the app in your hand.",
-  approach: "I care about systems that are reliable, low-cost and usable. I'm comfortable across embedded CircuitPython and C++, native iOS in Swift, and the web. I also enjoy the hands-on side of things: soldering, 3D printing, and designing PCBs.",
+  site: "jamesharcourt.ie",
+  intro: "I design embedded systems, health-tech and smart-building products, from schematic and firmware to cloud and app. I like reliable, low-cost devices that feel calm to use.",
+  about: "Most of my work starts with a real problem, like making glucose data glanceable for someone living with diabetes, or making an old building’s HVAC behave. I follow it all the way down: schematic and PCB, firmware on the metal, the cloud calls and the app in your hand.",
+  approach: "Outside the code I enjoy the hands-on side: soldering, 3D printing and designing boards.",
 };
