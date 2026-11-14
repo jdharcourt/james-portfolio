@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
-const { parseContributions, parseGraphQLContributions } = require('../lib/github.ts');
+const { contributionRange, parseContributions, parseGraphQLContributions } = require('../lib/github.ts');
 
 test('parses an actual GitHub calendar with date-sorted counts and levels', () => {
   const calendar = parseContributions(readFileSync(`${__dirname}/fixtures/github-january-2026.html`, 'utf8'), 2026);
@@ -48,6 +48,12 @@ test('includes private repository contributions from the GitHub API', () => {
   assert.equal(calendar.activeDays, 9);
   assert.deepEqual(calendar.bestDay, { date: '2026-02-04', count: 3, level: 2 });
   assert.equal(calendar.days[1].level, 2);
+});
+
+test('limits the API window to the current moment for the current year', () => {
+  const now = new Date('2026-11-14T18:00:00Z');
+  assert.deepEqual(contributionRange(2026, now), { from: '2026-01-01T00:00:00Z', to: '2026-11-14T18:00:00.000Z' });
+  assert.deepEqual(contributionRange(2025, now), { from: '2025-01-01T00:00:00Z', to: '2025-12-31T23:59:59.000Z' });
 });
 
 test('rejects GitHub API errors', () => {

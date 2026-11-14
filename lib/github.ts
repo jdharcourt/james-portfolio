@@ -57,6 +57,12 @@ export function parseContributions(html: string, year: number) {
   return summarise(year, validate(days, year), "public");
 }
 
+/** GraphQL window for a calendar year; the current year ends now rather than in the future. */
+export function contributionRange(year: number, now = new Date()) {
+  const end = new Date(`${year}-12-31T23:59:59Z`);
+  return { from: `${year}-01-01T00:00:00Z`, to: (end > now ? now : end).toISOString() };
+}
+
 const LEVELS: Record<string, number> = { NONE: 0, FIRST_QUARTILE: 1, SECOND_QUARTILE: 2, THIRD_QUARTILE: 3, FOURTH_QUARTILE: 4 };
 
 export const CONTRIBUTIONS_QUERY = `query($login: String!, $from: DateTime!, $to: DateTime!) {
