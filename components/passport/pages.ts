@@ -451,6 +451,21 @@ function buildFaces(): FaceDef[] {
   });
 
 
+  // The back of the polycarbonate data card: security print only.
+  faces.push({
+    id: "data-verso",
+    title: "Observations",
+    pal: PAL.data,
+    holo: true,
+    draw(p) {
+      p.background(5);
+      A.harp(p.ctx, A.PW / 2 - 160, 420, 450, p.pal.art, 0.08);
+      p.header("Observations", "Nótaí oifigiúla", 196);
+      p.para("Tá 34 leathanach sa phas seo. This passport contains 34 pages.", p.x0, 290, p.x1 - p.x0, 26, "#2c3440", 1.4, 500, "serif");
+      p.caption("Éire · Ireland");
+    },
+  });
+
   faces.push({
     id: "equilibrium",
     title: "Equilibrium",
@@ -570,25 +585,6 @@ function buildFaces(): FaceDef[] {
   });
 
   faces.push({
-    id: "notes",
-    title: "Notes",
-    pal: PAL.moss,
-    draw(p) {
-      p.background(13);
-      p.scene("contours");
-      p.header("Observations", "Nótaí", 196);
-      const { x0, x1 } = p;
-      let y = p.para(profile.intro, x0, 280, x1 - x0, 32, INK, 1.4, 500);
-      y = p.para(profile.about, x0, y + 24, x1 - x0, 27, "#2c3440", 1.42);
-      y += 30;
-      p.text("Let’s build something calm.", x0, y + 40, { size: 58, family: "serif", weight: 500, color: "#24493a" });
-      p.stamp({ x: 690, y: y + 240, rot: 0.14, color: "#2c46a8", shape: "oval", lines: ["OPEN", "HARDWARE · HEALTH-TECH · SMART BUILDINGS", "2026"], seed: 31, w: 330, h: 220 });
-      p.footer(pageOf("notes"), "Notes");
-      p.caption("Éire · 53.35°N 6.26°W");
-    },
-  });
-
-  faces.push({
     id: "contact",
     title: "Contact",
     pal: PAL.lilac,
@@ -666,6 +662,9 @@ export function textureKey(face: number) {
 
 /** Where the holographic OVD sits on the data page, in page UV (u, v) and cm radius. */
 export const DATA_OVD = { u: 495 / A.PW, v: (A.PH - 1327) / A.PH, r: 0.75 };
+
+/** The small ghost portrait on the data page, in page UV. */
+export const DATA_GHOST = { u0: 430 / A.PW, u1: 562 / A.PW, v0: (A.PH - 1244) / A.PH, v1: (A.PH - 1140) / A.PH };
 
 export function tintOf(face: number) {
   return FACES[face]?.pal.top ?? "#efe9dc";

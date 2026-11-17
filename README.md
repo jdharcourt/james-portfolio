@@ -1,6 +1,6 @@
 # James Harcourt Portfolio
 
-Next.js, TypeScript, React, Tailwind CSS, Notra UI and Three.js. The home page is an Irish passport rendered in WebGL that you open and page through; the printable résumé is at `/resume`.
+Next.js, TypeScript, React, Tailwind CSS, Notra UI and Three.js. The home page is an Irish passport rendered in WebGL that you open and page through; the one-page résumé, with a PDF download, is at `/resume`.
 
 ## Local development
 
@@ -35,13 +35,13 @@ The home page no longer shows the contribution calendar; the endpoint is kept fo
 
 The home page follows the idea of [emad.gg](https://emad.gg): a passport on a desk that opens into a portfolio. Here it is an Irish passport, with a burgundy pebbled-leather cover, gold-foil harp and lettering, a sideways data page with a holographic laminate, perforated document number, bilingual Irish/English labels, rubber stamps and engraved Irish landmarks on every page.
 
-- `components/passport/scene.ts` builds the book in Three.js: covers, the 16 paper leaves of a real 32-page booklet, page-block edges and desk. Pages bend and twist in a vertex shader; leather, foil, paper, laminate and desk are hand-written fragment shaders, so there are no environment or shadow maps. Page corners are cut in the geometry and the canvas is multisampled, so edges stay smooth.
+- `components/passport/scene.ts` builds the book in Three.js: covers, the polycarbonate data card and 16 paper leaves of a real 34-page booklet, page-block edges and a felt desk. Every leaf is a thin solid (`sheet.ts`) whose vertices are re-bent each frame, so pages lift at the gutter, curl and twist as they turn. `materials.ts` holds physically based leather with gold foil, matte paper, a satin laminate with a holographic patch, and the felt, all lit by a generated room environment and one warm spotlight that casts real soft shadows onto the pages and desk.
 - `components/passport/pages.ts` lays out each page from `lib/data.ts` and draws it with Canvas 2D (`art.ts` holds the harp, stamps and illustrations). Content pages come first; the rest of the booklet is blank visa pages that share one texture per side. `components/passport/sections.ts` sets the page order. Links are hit-tested on the page itself and tinted on hover rather than underlined.
-- The passport floats over the desk, tilts towards the cursor (or a phone's gyroscope) and sways slightly when idle. Idle frames render at half rate, and the resolution steps down automatically on slow GPUs. With reduced motion, the sway and tilt are off and frames are only drawn on change.
-- Only the six page textures nearest the open spread are kept on the GPU (768 px wide on small screens, 1024 px otherwise). The cover foil and the desk's felt are single-channel textures, and the drawing buffer is capped at about 2.6 megapixels.
+- The passport lies on the desk, tilts towards the cursor (or a phone's gyroscope) and sways slightly when idle. Idle frames render at half rate, and the resolution steps down automatically on slow GPUs. With reduced motion, the sway and tilt are off and frames are only drawn on change.
+- Only the six page textures nearest the open spread are kept on the GPU (768 px wide on small screens, 1024 px otherwise), the shadow map drops to 1024 px on small screens, and the drawing buffer is capped at about 2.2 megapixels.
 - Click or tap to open, or drag the cover. Dragging a page curls it with the grabbed corner leading; a flick turns it from a short drag and a flick back cancels. Corners lift towards a nearby cursor. Arrow keys, Home, End and Escape also work. Phones show one page at a time. Section shortcuts appear on keyboard focus, and the same content is in the page as plain HTML for screen readers and for browsers without WebGL.
 
-The résumé keeps the earlier "lab notebook" look (Instrument Serif, IBM Plex Sans and Mono) with [Notra UI](https://ui.usenotra.com) components installed through the shadcn registry.
+The résumé is a single A4 sheet in the same type (Instrument Serif, IBM Plex Sans and Mono), using [Notra UI](https://ui.usenotra.com) buttons from the shadcn registry. It leads with achievements, then experience, key projects, education and skills.
 
 ## Validation
 
@@ -50,4 +50,4 @@ npm test
 npm run build
 ```
 
-The résumé's print button opens the browser print dialog. Choose Save as PDF. Print styles remove navigation and controls and keep individual experience entries together.
+The résumé page offers the PDF in `public/james-harcourt-resume.pdf` as a download, printed from the page itself. After changing the résumé or its data, start the site and run `npm run resume:pdf` (set `RESUME_URL` if it is not on port 3000, and `CHROME` to your Chrome binary if `google-chrome` is not on the path), then check the PDF is still one page.

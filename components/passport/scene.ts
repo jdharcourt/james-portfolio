@@ -1,25 +1,33 @@
 import * as THREE from "three";
-import { PH, PW, feltTile } from "./art";
-import { DATA_OVD, FACES, LAST_SPREAD, LEAVES, isHolo, paintCover, paintFace, textureKey, tintOf, type Assets, type Fonts, type Hotspot } from "./pages";
-import * as S from "./shaders";
+import { PH, PW } from "./art";
+import { blankTexture, contactShadow, deskMaterial, edgeMaterial, feltTextures, hologramMask, KEY_DIR, leatherMaterial, pageMaterial, paperNormal, roomEnvironment, type Hover } from "./materials";
+import { DATA_GHOST, DATA_OVD, FACES, LAST_SPREAD, LEAVES, paintCover, paintFace, textureKey, tintOf, type Assets, type Fonts, type Hotspot } from "./pages";
+import { Sheet, gutterLift, gutterRun, type SheetPose } from "./sheet";
 
-// Scene units are centimetres. Pages are 88 x 125 mm, like a real passport.
-const W = 8.8;
-const H = 12.5;
-const TC = 0.055; // cover board
-const TP = 0.011; // one paper leaf
-const GAP = 0.006;
-const CX0 = -0.05;
-const CW = W + 0.2;
-const CH = H + 0.3;
-const PAGE_RADIUS = 0.42;
-const COVER_RADIUS = 0.5;
-const HOVER = 0.7; // the passport floats this far above the desk
+// Scene units are centimetres. An Irish passport is 88 x 125 mm.
+const COVER_W = 8.8;
+const COVER_H = 12.5;
+const COVER_R = 0.45;
+const TC = 0.07; // cover board
+const LEAF_W = 8.58;
+const LEAF_H = 12.2;
+const LEAF_R = 0.36;
+const TP = 0.016; // paper leaf
+const TD = 0.06; // polycarbonate data card
+const GAP = 0.004;
+const OX = -0.09; // the covers fold just outside the stitch line
+const RAMP = 2.4; // paper climbs out of the gutter over this distance
+const RAMP_CARD = 1.1;
+const RAMP_COVER = 1.1; // the cover wraps the spine over this distance
 const CACHE = 6; // page textures kept on the GPU at once
-const FOV = 24;
-const BEND = 1.1; // how far paper curls while it turns
-const EPS = 0.002;
+const FOV = 26;
 const PI = Math.PI;
+
+// Viewing angles, measured from looking straight down at the desk.
+const POSE = {
+  desk: { closed: 0.7, open: 0.76, read: 0.42, turned: 0.62, readTurned: 0.36, spinClosed: -0.24, spinOpen: 0.04, spinTurned: 0.08 },
+  phone: { closed: 0.6, open: 0.56, read: 0.25, turned: 0.5, readTurned: 0.19, spinClosed: -0.16, spinOpen: 0.04, spinTurned: 0.08 },
+};
 
 export type PassportEvents = {
   onReady?: () => void;
@@ -33,11 +41,16 @@ export type PassportHandle = {
   dispose: () => void;
 };
 
-type Leaf = {
-  i: number;
+type Turnable = {
+  /** 0 is the front cover, 1 the data card, then the paper leaves. */
+  k: number;
+  sheet: Sheet;
   mesh: THREE.Mesh;
-  mat: THREE.ShaderMaterial;
-  /** 0 for a rigid board, small for the polycarbonate data card, 1 for paper. */
+  front: THREE.Material;
+  back: THREE.Material;
+  thick: number;
+  ramp: number;
+  /** How readily the sheet curls: 1 for paper, small for card and board. */
   stiff: number;
   base: 0 | 1;
   mode: "rest" | "tween" | "spring" | "drag";
@@ -62,70 +75,6 @@ const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 
 const smooth = (t: number) => t * t * (3 - 2 * t);
 const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const damp = (a: number, b: number, rate: number, dt: number) => a + (b - a) * (1 - Math.exp(-rate * dt));
-
-function roundedRect(s: THREE.Shape, x: number, y: number, w: number, h: number, r: number) {
-  s.moveTo(x + r, y);
-  s.lineTo(x + w - r, y);
-  s.quadraticCurveTo(x + w, y, x + w, y + r);
-  s.lineTo(x + w, y + h - r);
-  s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  s.lineTo(x + r, y + h);
-  s.quadraticCurveTo(x, y + h, x, y + h - r);
-  s.lineTo(x, y + r);
-  s.quadraticCurveTo(x, y, x + r, y);
-}
-
-/** A page as a grid whose outer corners follow the rounded die-cut, so edges stay smooth. */
-function leafGeometry() {
-  const r = PAGE_RADIUS;
-  const cols: number[] = [];
-  const main = 60;
-  for (let i = 0; i <= main; i++) cols.push((W - r) * Math.pow(i / main, 1.12));
-  const corner = 14;
-  for (let i = 1; i <= corner; i++) cols.push(W - r + r * Math.sin((i / corner) * (PI / 2)));
-  const rows = 18;
-  const pos: number[] = [];
-  const idx: number[] = [];
-  for (const s of cols) {
-    const zmax = s <= W - r ? H / 2 : H / 2 - r + Math.sqrt(Math.max(0, r * r - (s - (W - r)) ** 2));
-    for (let j = 0; j <= rows; j++) pos.push(s, 0, -zmax + (2 * zmax * j) / rows);
-  }
-  for (let i = 0; i < cols.length - 1; i++)
-    for (let j = 0; j < rows; j++) {
-      const a = i * (rows + 1) + j;
-      const b = a + 1;
-      const c = a + rows + 1;
-      const d = c + 1;
-      idx.push(a, b, c, b, d, c);
-    }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-  g.setIndex(idx);
-  return g;
-}
-
-function blockGeometry() {
-  const s = new THREE.Shape();
-  const r = PAGE_RADIUS;
-  s.moveTo(0, -H / 2);
-  s.lineTo(W - r, -H / 2);
-  s.quadraticCurveTo(W, -H / 2, W, -H / 2 + r);
-  s.lineTo(W, H / 2 - r);
-  s.quadraticCurveTo(W, H / 2, W - r, H / 2);
-  s.lineTo(0, H / 2);
-  s.lineTo(0, -H / 2);
-  return new THREE.ExtrudeGeometry(s, { depth: 1, bevelEnabled: false, curveSegments: 20 });
-}
-
-function coverGeometry() {
-  const s = new THREE.Shape();
-  roundedRect(s, CX0, -CH / 2, CW, CH, COVER_RADIUS);
-  const b = 0.018;
-  const g = new THREE.ExtrudeGeometry(s, { depth: TC - b * 2, bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 4, curveSegments: 24 });
-  g.rotateX(-PI / 2);
-  g.translate(0, b, 0);
-  return g;
-}
 
 async function loadPhoto(): Promise<HTMLCanvasElement | null> {
   try {
@@ -165,20 +114,11 @@ async function loadPhoto(): Promise<HTMLCanvasElement | null> {
 
 async function loadFonts(fonts: Fonts) {
   if (!document.fonts) return;
-  const specs = [
-    `400 20px ${fonts.sans}`,
-    `500 20px ${fonts.sans}`,
-    `600 20px ${fonts.sans}`,
-    `500 20px ${fonts.mono}`,
-    `500 20px ${fonts.serif}`,
-    `600 20px ${fonts.serif}`,
-    `400 20px ${fonts.script}`,
-  ];
+  const specs = [`400 20px ${fonts.sans}`, `500 20px ${fonts.sans}`, `600 20px ${fonts.sans}`, `500 20px ${fonts.mono}`, `500 20px ${fonts.serif}`, `600 20px ${fonts.serif}`, `400 20px ${fonts.script}`];
   await Promise.race([Promise.allSettled(specs.map((f) => document.fonts.load(f, "AÉé0"))), new Promise((r) => setTimeout(r, 4000))]);
 }
 
-const idle = () =>
-  new Promise<void>((r) => ("requestIdleCallback" in window ? window.requestIdleCallback(() => r(), { timeout: 120 }) : setTimeout(r, 16)));
+const idle = () => new Promise<void>((r) => ("requestIdleCallback" in window ? window.requestIdleCallback(() => r(), { timeout: 120 }) : setTimeout(r, 16)));
 
 export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, events: PassportEvents, signal: AbortSignal): Promise<PassportHandle> {
   const [photo] = await Promise.all([loadPhoto(), loadFonts(fonts)]);
@@ -186,42 +126,85 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
   const assets: Assets = { fonts, photo };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const coarse = matchMedia("(pointer: coarse)").matches;
+  const small = Math.min(window.innerWidth, window.innerHeight) < 600;
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, stencil: false, powerPreference: "high-performance" });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
-  renderer.toneMappingExposure = 1.05;
-  renderer.setClearColor(0x16120e, 1);
-  const maxAniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  renderer.toneMappingExposure = 0.78;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.setClearColor(0x120e0b, 1);
+  const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
   const scene = new THREE.Scene();
+  const env = roomEnvironment(renderer);
+  scene.environment = env.texture;
+  scene.environmentIntensity = 0.45;
+
   const camera = new THREE.PerspectiveCamera(FOV, 1, 4, 400);
-  // pose floats the passport and tilts it in screen space, spin turns it on
-  // the desk, and book shifts it so the part being read sits on the pivot.
-  const pose = new THREE.Group();
+
+  // One warm key light that throws real shadows, a little sky/desk bounce and
+  // a cool window off to the left.
+  const key = new THREE.SpotLight(0xffeedb, 9, 0, 0.36, 1, 0);
+  const keyBase = KEY_DIR.clone().multiplyScalar(60);
+  key.position.copy(keyBase);
+  key.target.position.set(-5, 0, -5);
+  key.castShadow = true;
+  key.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
+  key.shadow.camera.near = 20;
+  key.shadow.camera.far = 110;
+  key.shadow.bias = -0.0003;
+  key.shadow.normalBias = 0.01;
+  key.shadow.radius = 4;
+  key.shadow.intensity = 0.9;
+  scene.add(key, key.target);
+  scene.add(new THREE.HemisphereLight(0xe8ecf2, 0x8a6a50, 0.3));
+  const windowLight = new THREE.SpotLight(0xdde8ff, 1.3, 0, 0.9, 1, 0);
+  windowLight.position.set(-66, 42, -28);
+  windowLight.target.position.set(0, 0, -6);
+  scene.add(windowLight, windowLight.target);
+
+  // world sways and tilts with the cursor; spin turns the passport on the desk;
+  // book shifts so the part being read sits on the pivot.
+  const world = new THREE.Group();
   const spin = new THREE.Group();
   const book = new THREE.Group();
-  pose.add(spin);
+  world.add(spin);
   spin.add(book);
-  scene.add(pose);
+  scene.add(world);
 
-  const shared = {
-    uLightDir: { value: new THREE.Vector3(-0.45, 0.85, 0.42).normalize() },
-    uLightCol: { value: new THREE.Color(1.0, 0.95, 0.88) },
-    uArch: { value: 0 },
-    uW: { value: W },
-    uH: { value: H },
-    uTurn: { value: new THREE.Vector4() },
-    uHover: { value: new THREE.Vector4(-1, -1, -1, -1) },
-    uHoverFace: { value: -1 },
-    uOvd: { value: new THREE.Vector3(DATA_OVD.u, DATA_OVD.v, DATA_OVD.r) },
-  };
   const disposables: { dispose: () => void }[] = [];
   const track = <T extends { dispose: () => void }>(o: T) => (disposables.push(o), o);
+  track(env);
 
-  // --- Cover foil mask (single channel keeps it to ~2 MB on the GPU) -------
+  // --- Desk -------------------------------------------------------------------
+  const felt = feltTextures(aniso);
+  felt.map.repeat.set(34, 34);
+  felt.normal.repeat.set(34, 34);
+  track(felt.map);
+  track(felt.normal);
+  const desk = deskMaterial(felt);
+  track(desk.material);
+  const deskGeo = track(new THREE.PlaneGeometry(200, 200));
+  deskGeo.rotateX(-PI / 2);
+  const deskMesh = new THREE.Mesh(deskGeo, desk.material);
+  deskMesh.position.y = -0.002;
+  deskMesh.receiveShadow = true;
+  world.add(deskMesh);
+
+  const shadowTex = track(contactShadow());
+  const shadowMat = track(new THREE.MeshBasicMaterial({ color: 0x000000, alphaMap: shadowTex, transparent: true, opacity: 0.55, depthWrite: false }));
+  const shadowGeo = track(new THREE.PlaneGeometry(1, 1));
+  shadowGeo.rotateX(-PI / 2);
+  const contact = new THREE.Mesh(shadowGeo, shadowMat);
+  contact.position.y = 0.004;
+  contact.renderOrder = 1;
+  book.add(contact);
+
+  // --- Cover ------------------------------------------------------------------
   const coverW = 1024;
-  const coverH = Math.round((coverW * CH) / CW);
+  const coverH = Math.round((coverW * COVER_H) / COVER_W);
   const coverCanvas = document.createElement("canvas");
   coverCanvas.width = coverW;
   coverCanvas.height = coverH;
@@ -235,169 +218,117 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
   foil.generateMipmaps = true;
   foil.minFilter = THREE.LinearMipmapLinearFilter;
   foil.magFilter = THREE.LinearFilter;
-  foil.anisotropy = maxAniso;
+  foil.anisotropy = aniso;
   foil.needsUpdate = true;
 
-  const coverMat = (foilOn: boolean) =>
-    track(
-      new THREE.ShaderMaterial({
-        vertexShader: S.COVER_VS,
-        fragmentShader: S.COVER_FS,
-        uniforms: {
-          uLightDir: shared.uLightDir,
-          uLightCol: shared.uLightCol,
-          uFoil: { value: foil },
-          uFoilOn: { value: foilOn ? 1 : 0 },
-          uRect: { value: new THREE.Vector4(CX0, -CH / 2, CW, CH) },
-          uTexel: { value: new THREE.Vector2(1 / coverW, 1 / coverH) },
-        },
-      }),
-    );
+  const BURGUNDY = "#4c0f1d";
+  const leatherFront = track(leatherMaterial({ color: BURGUNDY, foil, size: [COVER_W, COVER_H] }));
+  const leatherBack = track(leatherMaterial({ color: BURGUNDY, foil: null, size: [COVER_W, COVER_H] }));
+  const leatherEdge = track(new THREE.MeshStandardMaterial({ color: "#3a0a15", roughness: 0.66 }));
+  const paperEdge = track(edgeMaterial("#ebe3d2"));
+  const cardEdge = track(new THREE.MeshPhysicalMaterial({ color: "#e3e8e3", roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.1 }));
+  const blank = track(blankTexture());
+  const paper = track(paperNormal(aniso));
+  paper.repeat.set(5, 7);
 
-  const coverGeo = track(coverGeometry());
-  const coverPivot = new THREE.Group();
-  coverPivot.add(new THREE.Mesh(coverGeo, coverMat(true)));
-  book.add(coverPivot);
-  const backCover = new THREE.Mesh(coverGeo, coverMat(false));
-  book.add(backCover);
+  // The closed cover wraps the spine; it is a little longer than the back board.
+  const stackAll = TD + TP * (LEAVES - 1);
+  const closedRise = TC + GAP + stackAll + GAP;
+  const allowance = RAMP_COVER - gutterRun(gutterLift(closedRise, RAMP_COVER), RAMP_COVER);
+  const frontLen = COVER_W + allowance;
 
-  const spineGeo = track(new THREE.CylinderGeometry(1, 1, CH - 2 * COVER_RADIUS * 0.4, 32, 1, true, PI, PI));
-  spineGeo.rotateX(PI / 2);
-  const spine = new THREE.Mesh(spineGeo, coverMat(false));
-  book.add(spine);
+  const frontSheet = new Sheet({
+    length: frontLen,
+    height: COVER_H,
+    radius: COVER_R,
+    thickness: TC,
+    ramp: RAMP_COVER,
+    flex: RAMP_COVER / frontLen,
+    // Outside: the foil mask covers the flat board, not the spine wrap.
+    uFront: (s) => (s - allowance) / COVER_W,
+    uBack: (s) => 1 - s / frontLen,
+  });
+  const backSheet = new Sheet({ length: COVER_W, height: COVER_H, radius: COVER_R, thickness: TC, ramp: 0.5, flex: 0.2, uFront: (s) => s / COVER_W, uBack: (s) => s / COVER_W });
+  track(frontSheet);
+  track(backSheet);
 
-  // --- Leaves -------------------------------------------------------------
-  const leafGeo = track(leafGeometry());
-  const leafMat = (front: number, back: number, rest: number, lift: number) =>
-    track(
-      new THREE.ShaderMaterial({
-        vertexShader: S.LEAF_VS,
-        fragmentShader: S.PAGE_FS,
-        side: THREE.DoubleSide,
-        uniforms: {
-          ...shared,
-          uP: { value: 0 },
-          uBend: { value: 0 },
-          uTwist: { value: 0 },
-          uHinge: { value: 0 },
-          uLift: { value: lift },
-          uRest: { value: rest },
-          uSelf: { value: 0 },
-          uFront: { value: null },
-          uBack: { value: null },
-          uHasFront: { value: 0 },
-          uHasBack: { value: 0 },
-          uTintFront: { value: new THREE.Color(tintOf(front)) },
-          uTintBack: { value: new THREE.Color(tintOf(back)) },
-          uHoloFront: { value: isHolo(front) ? 1 : 0 },
-          uHoloBack: { value: isHolo(back) ? 1 : 0 },
-          uFaceFront: { value: front },
-          uFaceBack: { value: back },
-        },
-      }),
-    );
+  const pageMat = (face: number, spine: number, laminate = false) => {
+    const m = pageMaterial({
+      blank,
+      paper,
+      spine,
+      laminate: laminate ? { iridescence: track(hologramMask(DATA_OVD, DATA_GHOST, LEAF_W, LEAF_H)) } : undefined,
+    });
+    (m as THREE.MeshStandardMaterial).color.set(tintOf(face));
+    return track(m);
+  };
 
-  const leaves: Leaf[] = [];
-  for (let i = 0; i <= LEAVES; i++) {
-    // Leaf 0 is the paper glued inside the front cover; it turns with the board.
-    const mat = i === 0 ? leafMat(-1, 1, 0, -0.004) : leafMat(2 * i, 2 * i + 1, 1, 0);
-    const mesh = new THREE.Mesh(leafGeo, mat);
+  const lastFace = FACES.length - 1;
+  const insideFront = pageMat(1, 1);
+  const insideBack = pageMat(lastFace, 0);
+  const frontMesh = new THREE.Mesh(frontSheet.geometry, [leatherFront, insideFront, leatherEdge]);
+  const backMesh = new THREE.Mesh(backSheet.geometry, [insideBack, leatherBack, leatherEdge]);
+  for (const m of [frontMesh, backMesh]) {
+    m.castShadow = m.receiveShadow = true;
+    m.frustumCulled = false;
+    book.add(m);
+  }
+  backSheet.update({ ox: OX, oy: TC / 2, base: 0, lift: 0, bend: 0, twist: 0, lo: 0, hi: 0 });
+
+  // --- Leaves -------------------------------------------------------------------
+  const make = (k: number, sheet: Sheet, front: THREE.Material, back: THREE.Material, edge: THREE.Material, thick: number, ramp: number, stiff: number): Turnable => {
+    const mesh = new THREE.Mesh(sheet.geometry, [front, back, edge]);
+    mesh.castShadow = mesh.receiveShadow = true;
     mesh.frustumCulled = false;
     book.add(mesh);
-    leaves.push({
-      i,
-      mesh,
-      mat,
-      stiff: i === 0 ? 0 : i === 1 ? 0.12 : 1,
-      base: 0,
-      mode: "rest",
-      p: 0,
-      v: 0,
-      bend: 0,
-      twist: 0,
-      from: 0,
-      to: 0,
-      t0: 0,
-      dur: 1,
-      dir: 1,
-      twist0: 0,
-      peel: 0,
-      peelGoal: 0,
-      peelZ: 0,
-    });
-  }
-  const lastFace = FACES.length - 1;
-  const backPaper = leafMat(lastFace, -1, 0, 0);
-  const backMesh = new THREE.Mesh(leafGeo, backPaper);
-  backMesh.frustumCulled = false;
-  backPaper.uniforms.uHinge.value = TC + 0.004;
-  book.add(backMesh);
-
-  const blockGeo = track(blockGeometry());
-  const blockMat = (side: number) =>
-    track(
-      new THREE.ShaderMaterial({
-        vertexShader: S.BLOCK_VS,
-        fragmentShader: S.BLOCK_FS,
-        side: THREE.DoubleSide,
-        uniforms: { ...shared, uSide: { value: side }, uY0: { value: TC }, uY1: { value: TC + 0.1 }, uLeaf: { value: TP } },
+    return { k, sheet, mesh, front, back, thick, ramp, stiff, base: 0, mode: "rest", p: 0, v: 0, bend: 0, twist: 0, from: 0, to: 0, t0: 0, dur: 1, dir: 1, twist0: 0, peel: 0, peelGoal: 0, peelZ: 0 };
+  };
+  const turnables: Turnable[] = [make(0, frontSheet, leatherFront, insideFront, leatherEdge, TC, RAMP_COVER, 0.05)];
+  for (let i = 1; i <= LEAVES; i++) {
+    const card = i === 1;
+    const sheet = track(
+      new Sheet({
+        length: LEAF_W,
+        height: LEAF_H,
+        radius: LEAF_R,
+        thickness: card ? TD : TP,
+        ramp: card ? RAMP_CARD : RAMP,
+        // The card flexes only along its hinge strip.
+        flex: card ? 0.14 : 0.2,
+        uFront: (s) => s / LEAF_W,
+        uBack: (s) => 1 - s / LEAF_W,
+        cockle: card ? 0 : 0.012,
+        seed: i * 1.7,
       }),
     );
-  const rightBlock = new THREE.Mesh(blockGeo, blockMat(1));
-  const leftBlock = new THREE.Mesh(blockGeo, blockMat(-1));
-  rightBlock.frustumCulled = leftBlock.frustumCulled = false;
-  book.add(rightBlock, leftBlock);
+    turnables.push(make(i, sheet, pageMat(2 * i, 0, card), pageMat(2 * i + 1, 1, card), card ? cardEdge : paperEdge, card ? TD : TP, card ? RAMP_CARD : RAMP, card ? 0.12 : 1));
+  }
+  const leaves = turnables.slice(1);
 
-  // --- Desk ---------------------------------------------------------------
-  const felt = track(new THREE.DataTexture(feltTile(512), 512, 512, THREE.RedFormat, THREE.UnsignedByteType));
-  felt.wrapS = felt.wrapT = THREE.RepeatWrapping;
-  felt.generateMipmaps = true;
-  felt.minFilter = THREE.LinearMipmapLinearFilter;
-  felt.magFilter = THREE.LinearFilter;
-  felt.anisotropy = maxAniso;
-  felt.needsUpdate = true;
-  const deskMat = track(
-    new THREE.ShaderMaterial({
-      vertexShader: S.DESK_VS,
-      fragmentShader: S.DESK_FS,
-      uniforms: {
-        uLightDir: shared.uLightDir,
-        uLightCol: shared.uLightCol,
-        uFelt: { value: felt },
-        uBookInv: { value: new THREE.Matrix4() },
-        uFoot: { value: new THREE.Vector4() },
-        uHover: { value: HOVER },
-      },
-    }),
-  );
-  const deskGeo = track(new THREE.PlaneGeometry(160, 160));
-  deskGeo.rotateX(-PI / 2);
-  scene.add(new THREE.Mesh(deskGeo, deskMat));
-
-  // --- Page textures ------------------------------------------------------
-  const quality = Math.min(window.innerWidth, window.innerHeight) < 600 ? 768 : 1024;
+  // --- Page textures ------------------------------------------------------------
+  const quality = small ? 768 : 1024;
   const paintCanvas = document.createElement("canvas");
   paintCanvas.width = quality;
   paintCanvas.height = Math.round((quality * PH) / PW);
   const pctx = paintCanvas.getContext("2d")!;
   const cache = new Map<string, { tex: THREE.Texture; links: Hotspot[] }>();
 
-  function slotOf(face: number): [THREE.ShaderMaterial, "Front" | "Back"] | null {
-    if (face === 1) return [leaves[0].mat, "Back"];
-    if (face === lastFace) return [backPaper, "Front"];
+  function slotOf(face: number): THREE.MeshStandardMaterial | null {
+    if (face === 1) return insideFront as THREE.MeshStandardMaterial;
+    if (face === lastFace) return insideBack as THREE.MeshStandardMaterial;
     if (face < 2 || face > lastFace) return null;
-    const leaf = leaves[Math.floor(face / 2)];
-    return leaf ? [leaf.mat, face % 2 === 0 ? "Front" : "Back"] : null;
+    const t = turnables[Math.floor(face / 2)];
+    if (!t) return null;
+    return (face % 2 === 0 ? t.front : t.back) as THREE.MeshStandardMaterial;
   }
 
   function syncTextures() {
     for (let f = 1; f <= lastFace; f++) {
-      const slot = slotOf(f);
-      if (!slot) continue;
+      const m = slotOf(f);
+      if (!m) continue;
       const tex = cache.get(textureKey(f))?.tex ?? null;
-      const [mat, side] = slot;
-      mat.uniforms[`u${side}`].value = tex;
-      mat.uniforms[`uHas${side}`].value = tex ? 1 : 0;
+      m.map = tex ?? blank;
+      m.color.set(tex ? 0xffffff : tintOf(f));
     }
   }
 
@@ -405,6 +336,9 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
   let focus: "L" | "R" = "R";
   let painting = false;
   let disposed = false;
+  let width = 1;
+  let height = 1;
+  const portrait = () => width / height < 0.85;
 
   const onShow = () => {
     const s = spread;
@@ -416,7 +350,7 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     const s = spread;
     return [...onShow(), 2 * s + 1, 2 * s + 2, 2 * s - 2, 2 * s - 3].filter((f, k, all) => f >= 1 && f <= lastFace && all.indexOf(f) === k);
   };
-  const moving = () => !!drag || leaves.some((l) => l.mode === "tween" || l.mode === "spring");
+  const moving = () => !!drag || turnables.some((l) => l.mode === "tween" || l.mode === "spring");
 
   async function pump() {
     if (painting || disposed) return;
@@ -431,7 +365,7 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     painting = true;
     await idle();
     if (disposed) return;
-    const key = textureKey(face);
+    const keyName = textureKey(face);
     const links = paintFace(pctx, face, assets, paintCanvas.width / PW);
     let tex: THREE.Texture;
     if ("createImageBitmap" in window) {
@@ -452,11 +386,10 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     }
     tex.flipY = false;
     tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = maxAniso;
+    tex.anisotropy = aniso;
     tex.minFilter = THREE.LinearMipmapLinearFilter;
     tex.needsUpdate = true;
-    cache.set(key, { tex, links });
-    // Evict the pages furthest from where the reader is.
+    cache.set(keyName, { tex, links });
     const keep = new Set(wantedFaces().map(textureKey));
     const extra = [...cache.keys()].filter((k) => !keep.has(k));
     while (cache.size > CACHE && extra.length) {
@@ -470,132 +403,59 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     pump();
   }
 
-  // --- Pose, camera and input state ---------------------------------------
-  let width = 1;
-  let height = 1;
-  const portrait = () => width / height < 0.85;
-  const pointer = { x: 0, y: 0, sx: 0, sy: 0, on: false };
-  const orient = { on: false, asked: false, x: 0, y: 0, sx: 0, sy: 0, t: 0, base: null as null | { x: number; y: number } };
-  let openness = 0;
-  let readAmt = 1;
-  let lastTurn = -1e9;
-  const lightGoal = shared.uLightDir.value.clone();
-  const view = { spin: 0, fx: 0, dist: 60, theta: 0.6 };
-
-  type Goal = { spin: number; fx: number; w: number; h: number; read: number; turn: number };
-  function poseGoal(): Goal {
-    const phone = portrait();
-    if (spread === 0) return { spin: phone ? -0.14 : -0.24, fx: CX0 + CW / 2, w: CW + 0.6, h: CH + 0.6, read: phone ? 0.48 : 0.6, turn: phone ? 0.48 : 0.6 };
-    if (spread === 1) return { spin: -PI / 2 + 0.06, fx: W / 2, w: W + 1.8, h: H + 1.4, read: phone ? 0.28 : 0.32, turn: phone ? 0.42 : 0.52 };
-    if (phone) return { spin: 0.02, fx: focus === "L" ? -W / 2 : W / 2, w: W + 0.5, h: H + 0.8, read: 0.28, turn: 0.44 };
-    return { spin: 0.035, fx: 0, w: 2 * W + 1, h: H + 1, read: 0.36, turn: 0.62 };
-  }
-
-  function fitDistance(g: Goal) {
-    const c = Math.abs(Math.cos(g.spin));
-    const s = Math.abs(Math.sin(g.spin));
-    const sw = g.w * c + g.h * s;
-    const sh = (g.w * s + g.h * c) * Math.cos(g.read);
-    const t = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
-    // The near edge is closer to the lens, so allow for perspective growth.
-    return Math.max(sh / (2 * t), sw / (2 * t * camera.aspect)) * (1 + 0.3 * Math.sin(g.read));
-  }
-
-  function snapView() {
-    const g = poseGoal();
-    view.spin = g.spin;
-    view.fx = g.fx;
-    view.theta = g.read + (reduced ? 0 : 0.12);
-    view.dist = fitDistance(g) * (reduced ? 1 : 1.18);
-  }
-
-  // --- Layout --------------------------------------------------------------
+  // --- Book layout ----------------------------------------------------------------
+  const pose: SheetPose = { ox: 0, oy: 0, base: 0, lift: 0, bend: 0, twist: 0, lo: 0, hi: 0 };
   function layout() {
     const n = LEAVES;
-    let rightAll = 0;
-    for (let j = 1; j <= n; j++) rightAll += 1 - leaves[j].p;
-    const p0 = leaves[0].p;
-    // Front cover board and its endpaper.
-    const inner = TC + GAP + TP * rightAll + 0.004;
-    const hinge0 = THREE.MathUtils.lerp(inner, TC, p0);
-    coverPivot.position.y = hinge0;
-    coverPivot.rotation.z = PI * p0;
-    const m0 = leaves[0].mat.uniforms;
-    m0.uP.value = p0;
-    m0.uHinge.value = hinge0;
-    // Paper leaves stack on whichever side they rest.
-    let below = rightAll;
+    // Stack heights: what lies under each leaf on either side.
+    const right = new Float32Array(n + 2);
+    for (let i = n; i >= 1; i--) right[i] = right[i + 1] + (1 - leaves[i - 1].p) * leaves[i - 1].thick;
     let left = 0;
-    let topR = -1;
-    let topL = -1;
-    let restR = 0;
-    let restL = 0;
     for (let i = 1; i <= n; i++) {
-      const l = leaves[i];
-      below -= 1 - l.p;
-      const r = TC + GAP + TP * below;
-      const lh = TC + GAP + TP * left;
-      left += l.p;
-      const u = l.mat.uniforms;
-      u.uP.value = l.p;
-      u.uHinge.value = THREE.MathUtils.lerp(r, lh, l.p);
-      u.uBend.value = l.bend;
-      u.uTwist.value = l.twist;
-      if (l.p <= EPS) {
-        restR++;
-        if (topR < 0) topR = i;
-      }
-      if (l.p >= 1 - EPS) {
-        restL++;
-        topL = i;
-      }
+      const l = leaves[i - 1];
+      const oy = TC + GAP + l.thick / 2;
+      const hR = TC + GAP + right[i + 1] + l.thick / 2;
+      const hL = TC + GAP + left + l.thick / 2;
+      left += l.p * l.thick;
+      const liftR = gutterLift(hR - oy, l.ramp);
+      const liftL = gutterLift(hL - oy, l.ramp);
+      pose.ox = 0;
+      pose.oy = oy;
+      pose.base = PI * l.p;
+      pose.lift = (1 - l.p) * liftR - l.p * liftL;
+      pose.bend = l.bend;
+      pose.twist = l.twist;
+      pose.lo = liftR;
+      pose.hi = liftL;
+      l.sheet.update(pose);
     }
-    // Only the top resting leaf on each side and any moving leaf are drawn; the
-    // page blocks stand in for the rest, so 16 leaves cost about as much as 2.
-    for (let i = 1; i <= n; i++) {
-      const l = leaves[i];
-      l.mesh.visible = (l.p > EPS && l.p < 1 - EPS) || i === topR || i === topL;
-    }
-    const rb = rightBlock.material as THREE.ShaderMaterial;
-    rb.uniforms.uY1.value = TC + GAP + TP * (restR - 1) - 0.003;
-    rightBlock.visible = restR > 1;
-    const lb = leftBlock.material as THREE.ShaderMaterial;
-    lb.uniforms.uY1.value = TC + GAP + TP * (restL - 1) - 0.003;
-    leftBlock.visible = restL > 1;
+    // The front board climbs the spine to sit on the right-hand stack.
+    const c = turnables[0];
+    const rise = TC + GAP + right[1] + GAP;
+    pose.ox = OX;
+    pose.oy = TC / 2;
+    pose.base = PI * c.p;
+    pose.lift = (1 - c.p) * gutterLift(rise, RAMP_COVER);
+    pose.bend = c.bend;
+    pose.twist = c.twist;
+    pose.lo = 0;
+    pose.hi = 0;
+    frontSheet.update(pose);
 
-    const top = hinge0 + TC;
-    const closed = 1 - p0;
-    spine.visible = closed > 0.02;
-    spine.scale.set((top / 2) * Math.max(closed, 0.001), top / 2, 1);
-    spine.position.set(0, top / 2, 0);
-
-    shared.uArch.value = 0.07 * smooth(openness);
-
-    // Shadow from the page that is currently lifted highest.
-    let best = -1;
-    let lift = 0;
-    leaves.forEach((l, i) => {
-      const s = Math.sin(PI * l.p);
-      if (s > lift + 1e-3) {
-        lift = s;
-        best = i;
-      }
-      l.mat.uniforms.uSelf.value = 0;
-    });
-    if (best >= 0 && lift > 0.01) {
-      leaves[best].mat.uniforms.uSelf.value = 1;
-      shared.uTurn.value.set(leaves[best].p, 1, 0, 0);
-    } else shared.uTurn.value.set(0, 0, 0, 0);
-
-    const xmin = THREE.MathUtils.lerp(CX0, -(CX0 + CW), p0);
-    deskMat.uniforms.uFoot.value.set(xmin, CX0 + CW, -CH / 2, CH / 2);
+    // Contact shadow follows the footprint of whatever lies on the desk.
+    const xmin = THREE.MathUtils.lerp(OX, OX - frontLen, smooth(c.p));
+    const xmax = OX + COVER_W;
+    contact.scale.set((xmax - xmin) * 1.28, 1, COVER_H * 1.22);
+    contact.position.x = (xmin + xmax) / 2;
   }
 
-  // --- Page physics -------------------------------------------------------
-  type Drag = { leaf: Leaf; dir: 1 | -1; s0: number; p0: number; zn: number; pT: number; hist: [number, number][] };
+  // --- Page physics -----------------------------------------------------------------
+  type Drag = { t: Turnable; dir: 1 | -1; s0: number; p0: number; zn: number; pT: number; hist: [number, number][] };
   let drag: Drag | null = null;
+  let clock = 0;
+  let clockRate = 1;
 
-  function settle(l: Leaf) {
+  function settle(l: Turnable) {
     l.p = l.to;
     l.base = l.to as 0 | 1;
     l.mode = "rest";
@@ -605,25 +465,26 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     l.peel = 0;
   }
 
-  /** Curl for a page in flight: leads with its edge, then lets it trail as it lands. */
-  function flightBend(l: Leaf, a: number) {
+  /** Curl in flight: the free edge leads, then trails as the sheet lands. */
+  function flightBend(l: Turnable, a: number) {
     const sp = Math.min(1, Math.abs(l.v) / 2.5);
-    return l.dir * l.stiff * BEND * Math.sin(PI * a) * (0.35 + 0.55 * sp) * (1 - 1.55 * a);
+    return l.dir * l.stiff * Math.sin(PI * a) * (0.35 + 0.6 * sp) * (1 - 1.55 * a);
   }
 
-  function tween(l: Leaf, to: 0 | 1, delay: number) {
+  function tween(l: Turnable, to: 0 | 1, delay: number) {
     if (l.mode === "rest" && l.base === to && l.peel < 1e-3) return;
     l.mode = "tween";
     l.from = l.p;
     l.to = to;
     l.base = to;
     l.dir = to > l.p ? 1 : -1;
-    l.t0 = performance.now() + delay;
-    l.dur = (reduced ? 280 : l.i === 0 ? 1100 : 900) * Math.max(0.4, Math.abs(to - l.p));
+    l.t0 = clock + delay;
+    const full = reduced ? 0.4 : l.k === 0 ? 1.15 : portrait() ? 0.75 : 0.9;
+    l.dur = full * Math.max(0.35, Math.abs(to - l.p));
     l.peel = l.peelGoal = 0;
   }
 
-  function spring(l: Leaf, to: 0 | 1, v0: number) {
+  function spring(l: Turnable, to: 0 | 1, v0: number) {
     l.mode = "spring";
     l.from = l.p;
     l.to = to;
@@ -634,21 +495,25 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     l.peel = l.peelGoal = 0;
   }
 
-  function updateLeaves(now: number, dt: number) {
+  function updateTurns(dt: number) {
+    // Several pages turning at once speed up a little, as a riffle does.
+    const flying = turnables.filter((l) => l.mode === "tween" && clock >= l.t0).length;
+    clockRate = damp(clockRate, reduced ? 1 : 1 + 0.32 * Math.min(3, Math.max(0, flying - 1)), 7, dt);
+    clock += dt * clockRate;
     let busy = false;
     if (drag) {
-      const l = drag.leaf;
+      const l = drag.t;
       const prev = l.p;
       l.p += (drag.pT - l.p) * Math.min(1, dt * (reduced ? 40 : 20));
       l.v += ((l.p - prev) / Math.max(dt, 1e-3) - l.v) * Math.min(1, dt * 12);
       const a = drag.dir > 0 ? l.p : 1 - l.p;
       const sp = Math.min(1, Math.abs(l.v) / 2.5);
-      l.bend = drag.dir * l.stiff * BEND * Math.sin(PI * a) * (0.78 + 0.32 * sp);
+      l.bend = drag.dir * l.stiff * Math.sin(PI * a) * (0.8 + 0.32 * sp);
       // Grabbing near a corner lets that corner lead the page over.
-      l.twist = drag.dir * l.stiff * 0.55 * drag.zn * Math.sin(PI * Math.min(1, a * 1.3));
+      l.twist = drag.dir * l.stiff * 0.42 * drag.zn * Math.sin(PI * Math.min(1, a * 1.3));
       busy = true;
     }
-    for (const l of leaves) {
+    for (const l of turnables) {
       if (l.mode === "drag") continue;
       if (l.mode === "spring") {
         const w = reduced ? 16 : 9.5;
@@ -668,8 +533,8 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
         busy = true;
       } else if (l.mode === "tween") {
         busy = true;
-        if (now < l.t0) continue;
-        const r = clamp((now - l.t0) / l.dur);
+        if (clock < l.t0) continue;
+        const r = clamp((clock - l.t0) / l.dur);
         const np = l.from + (l.to - l.from) * ease(r);
         l.v = (np - l.p) / Math.max(dt, 1e-3);
         l.p = np;
@@ -678,15 +543,15 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
         l.twist = 0;
         if (r >= 1) settle(l);
       } else {
-        // At rest, a page lifts its corner towards a nearby pointer.
+        // At rest, a page lifts its corner towards a nearby cursor.
         const before = l.peel;
         l.peel = damp(l.peel, l.peelGoal, 9, dt);
         if (Math.abs(l.peel - l.peelGoal) < 1e-4) l.peel = l.peelGoal;
         if (l.peel !== before) busy = true;
         const sgn = l.base === 0 ? 1 : -1;
-        l.p = l.base + sgn * (l.i === 0 ? 0.035 : 0.05) * l.peel;
-        l.bend = sgn * l.stiff * 0.32 * l.peel;
-        l.twist = sgn * l.stiff * 0.3 * l.peel * l.peelZ;
+        l.p = l.base + sgn * (l.k === 0 ? 0.03 : 0.045) * l.peel;
+        l.bend = sgn * Math.max(l.stiff, 0.1) * 0.3 * l.peel;
+        l.twist = sgn * l.stiff * 0.28 * l.peel * l.peelZ;
         l.v = 0;
       }
     }
@@ -698,8 +563,8 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     if (s === spread || drag) return;
     const fwd = s > spread;
     const ids = fwd ? [...Array(s - spread)].map((_, k) => spread + k) : [...Array(spread - s)].map((_, k) => spread - 1 - k);
-    const step = ids.length > 3 ? 90 : 150;
-    ids.forEach((i, k) => tween(leaves[i], fwd ? 1 : 0, k * step));
+    const step = reduced ? 0.08 : 0.16;
+    ids.forEach((i, k) => tween(turnables[i], fwd ? 1 : 0, k * step));
     spread = s;
     focus = fwd ? "L" : "R";
     events.onSpread?.(spread);
@@ -725,7 +590,56 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     } else if (spread > 0) goTo(spread - 1);
   }
 
-  // --- Picking ------------------------------------------------------------
+  // --- Camera and pose ----------------------------------------------------------------
+  const pointer = { x: 0, y: 0, sx: 0, sy: 0, on: false };
+  const orient = { on: false, asked: false, x: 0, y: 0, sx: 0, sy: 0, t: 0, base: null as null | { x: number; y: number } };
+  let resting = 1;
+  const view = { dist: 60, tilt: 0.7, cx: 0, cz: 0 };
+
+  /** -PI/2 while the data page is up, so it reads the right way round. */
+  function turnAngle() {
+    const q = turnables[0].p + turnables[1].p;
+    if (q <= 1) return (-PI / 2) * smooth(q);
+    if (q <= 2) return (-PI / 2) * (1 - smooth(q - 1));
+    return 0;
+  }
+
+  function frame0() {
+    const P = portrait() ? POSE.phone : POSE.desk;
+    const t = turnAngle();
+    const n = Math.abs(t) / (PI / 2);
+    const r = Math.min(1, turnables[0].p * 1.5);
+    const tilt = (P.closed + (P.open - P.closed) * r) * (1 - n) + P.turned * n;
+    const spinA = (P.spinClosed + (P.spinOpen - P.spinClosed) * r) * (1 - n) + P.spinTurned * n;
+    const read = n > 0.5 ? P.readTurned : P.read;
+    // What needs to fit on screen, in book coordinates.
+    const closedC = OX + COVER_W / 2;
+    let cx = THREE.MathUtils.lerp(closedC, 0, smooth(r));
+    let w = THREE.MathUtils.lerp(COVER_W, 2 * COVER_W, smooth(r)) + 0.8;
+    let h = COVER_H + 0.8;
+    if (portrait() && spread >= 2) {
+      cx = focus === "L" ? -LEAF_W / 2 : LEAF_W / 2;
+      w = LEAF_W + 0.5;
+      h = LEAF_H + 0.7;
+    }
+    // While the data page is up, frame it on its own.
+    cx = THREE.MathUtils.lerp(cx, LEAF_W / 2, n);
+    w = THREE.MathUtils.lerp(w, LEAF_W + 1.2, n);
+    h = THREE.MathUtils.lerp(h, LEAF_H + 1.2, n);
+    return { t, spin: t + spinA, tilt, read, r, cx, w, h };
+  }
+
+  function fitDistance(spinAngle: number, tilt: number, w: number, h: number) {
+    const c = Math.abs(Math.cos(spinAngle));
+    const s = Math.abs(Math.sin(spinAngle));
+    const sw = w * c + h * s;
+    const sh = (w * s + h * c) * Math.cos(tilt);
+    const t = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
+    // The near edge sits closer to the lens, so allow for perspective growth.
+    return Math.max(sh / (2 * t), sw / (2 * t * camera.aspect)) * (1 + 0.32 * Math.sin(tilt));
+  }
+
+  // --- Picking --------------------------------------------------------------------------
   const ray = new THREE.Raycaster();
   const localRay = new THREE.Ray();
   const ndc = new THREE.Vector2();
@@ -738,7 +652,7 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     ray.setFromCamera(ndc, camera);
     inv.copy(book.matrixWorld).invert();
     localRay.copy(ray.ray).applyMatrix4(inv);
-    plane.constant = -(spread === 0 ? 2 * TC + GAP + TP * LEAVES : TC + GAP + (TP * LEAVES) / 2);
+    plane.constant = -(spread === 0 ? 2 * TC + 2 * GAP + stackAll : TC + GAP + stackAll / 2);
     const out = new THREE.Vector3();
     return localRay.intersectPlane(plane, out) ? out : null;
   }
@@ -747,13 +661,13 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     const pt = localPoint(cx, cy);
     if (!pt) return null;
     if (spread === 0) {
-      return pt.x > CX0 && pt.x < CX0 + CW && Math.abs(pt.z) < CH / 2 ? { side: "cover", face: 0, u: (pt.x - CX0) / CW, v: (pt.z + CH / 2) / CH, pt } : null;
+      return pt.x > OX && pt.x < OX + COVER_W && Math.abs(pt.z) < COVER_H / 2 ? { side: "cover", face: 0, u: (pt.x - OX) / COVER_W, v: (pt.z + COVER_H / 2) / COVER_H, pt } : null;
     }
-    if (Math.abs(pt.z) > H / 2 || Math.abs(pt.x) > W) return null;
+    if (Math.abs(pt.z) > LEAF_H / 2 || Math.abs(pt.x) > LEAF_W) return null;
     const side = pt.x >= 0 ? "R" : "L";
     const face = side === "R" ? 2 * spread : 2 * spread - 1;
-    const u = side === "R" ? pt.x / W : 1 + pt.x / W;
-    const v = (pt.z + H / 2) / H;
+    const u = side === "R" ? pt.x / LEAF_W : 1 + pt.x / LEAF_W;
+    const v = (pt.z + LEAF_H / 2) / LEAF_H;
     const link = cache.get(textureKey(face))?.links.find((h) => u >= h.u0 && u <= h.u1 && v >= h.v0 && v <= h.v1);
     return { side, face, u, v, link, pt };
   }
@@ -765,19 +679,20 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     else window.open(t.href, "_blank", "noopener,noreferrer");
   }
 
+  let hovered: THREE.Material | null = null;
   function hover(hit: Hit) {
-    for (const l of leaves) l.peelGoal = 0;
+    for (const l of turnables) l.peelGoal = 0;
     if (!reduced && hit && !hit.link) {
       if (hit.side === "cover") {
-        leaves[0].peelGoal = 0.35 + 0.65 * smooth(clamp((hit.u - 0.55) / 0.4));
+        turnables[0].peelGoal = 0.35 + 0.65 * smooth(clamp((hit.u - 0.55) / 0.4));
       } else if (hit.side === "R" && spread < LAST_SPREAD) {
-        const l = leaves[spread];
+        const l = turnables[spread];
         if (l.mode === "rest") {
           l.peelGoal = smooth(clamp((hit.u - 0.62) / 0.36));
           l.peelZ = 2 * hit.v - 1;
         }
       } else if (hit.side === "L" && spread > 0) {
-        const l = leaves[spread - 1];
+        const l = turnables[spread - 1];
         if (l.mode === "rest") {
           l.peelGoal = smooth(clamp((0.38 - hit.u) / 0.36));
           l.peelZ = 2 * hit.v - 1;
@@ -785,24 +700,28 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
       }
     }
     const link = hit?.link;
-    if (link) {
-      shared.uHover.value.set(link.u0, link.v0, link.u1, link.v1);
-      shared.uHoverFace.value = hit!.face;
-    } else shared.uHoverFace.value = -1;
+    const mat = link ? slotOf(hit!.face) : null;
+    if (hovered && hovered !== mat) (hovered.userData.hover as Hover).on.value = 0;
+    if (mat && link) {
+      const h = mat.userData.hover as Hover;
+      h.rect.value.set(link.u0, link.v0, link.u1, link.v1);
+      h.on.value = 1;
+    }
+    hovered = mat;
     canvas.style.cursor = link || hit?.side === "cover" ? "pointer" : hit && !portrait() ? "grab" : "default";
     invalidate();
   }
 
-  // --- Pointer input --------------------------------------------------------
+  // --- Pointer input ------------------------------------------------------------------
   let down: null | { id: number; x: number; y: number; hit: Hit; lp: THREE.Vector3 | null; touch: boolean; moved: boolean } = null;
 
-  function startDrag(l: Leaf, dir: 1 | -1, lp: THREE.Vector3) {
+  function startDrag(l: Turnable, dir: 1 | -1, lp: THREE.Vector3) {
     if (l.mode !== "rest" || reduced) return false;
     const s0 = Math.max(0.5, dir * lp.x);
     l.mode = "drag";
     l.dir = dir;
     l.peel = l.peelGoal = 0;
-    drag = { leaf: l, dir, s0, p0: l.p, zn: clamp(lp.z / (H / 2), -1, 1), pT: l.p, hist: [[performance.now(), l.p]] };
+    drag = { t: l, dir, s0, p0: l.p, zn: clamp(lp.z / (LEAF_H / 2), -1, 1), pT: l.p, hist: [[performance.now(), l.p]] };
     canvas.style.cursor = "grabbing";
     return true;
   }
@@ -835,16 +754,16 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
       const horizontal = Math.abs(dx) > Math.abs(dy) * 0.8;
       if (lp && (!down.touch || horizontal)) {
         if (spread === 0) {
-          if (down.hit?.side === "cover" || down.touch) startDrag(leaves[0], 1, lp);
+          if (down.hit?.side === "cover" || down.touch) startDrag(turnables[0], 1, lp);
         } else if (portrait()) {
-          // One page on screen: swiping it turns it, swiping towards it pans.
+          // One page on screen: swiping it turns it.
           const fwd = dx < 0;
-          if (fwd && (focus === "R" || spread === 1) && spread < LAST_SPREAD) startDrag(leaves[spread], 1, new THREE.Vector3(Math.max(lp.x, W * 0.7), 0, lp.z));
-          else if (!fwd && focus === "L" && spread > 1) startDrag(leaves[spread - 1], -1, new THREE.Vector3(Math.min(lp.x, -W * 0.7), 0, lp.z));
+          if (fwd && (focus === "R" || spread === 1) && spread < LAST_SPREAD) startDrag(turnables[spread], 1, new THREE.Vector3(Math.max(lp.x, LEAF_W * 0.7), 0, lp.z));
+          else if (!fwd && focus === "L" && spread > 1) startDrag(turnables[spread - 1], -1, new THREE.Vector3(Math.min(lp.x, -LEAF_W * 0.7), 0, lp.z));
         } else {
           const side = down.hit?.side ?? (lp.x >= 0 ? "R" : "L");
-          if (side === "R" && spread < LAST_SPREAD) startDrag(leaves[spread], 1, lp);
-          else if (side === "L" && spread > 0) startDrag(leaves[spread - 1], -1, lp);
+          if (side === "R" && spread < LAST_SPREAD) startDrag(turnables[spread], 1, lp);
+          else if (side === "L" && spread > 0) startDrag(turnables[spread - 1], -1, lp);
         }
       }
     }
@@ -852,8 +771,8 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
       const pt = localPoint(e.clientX, e.clientY);
       if (!pt) return;
       const { dir, s0 } = drag;
-      // Treat the grab point as riding a circle about the spine, as paper does.
-      const l = Math.max(s0, W * 0.6);
+      // The grab point rides a circle about the spine, as paper does.
+      const l = Math.max(s0, LEAF_W * 0.6);
       const u = Math.acos(clamp((dir * pt.x - s0 + l) / l, -1, 1)) / PI;
       drag.pT = clamp(dir > 0 ? drag.p0 + u : drag.p0 - u);
       drag.hist.push([performance.now(), drag.pT]);
@@ -869,7 +788,7 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
     if (d.touch) enableOrientation(true);
     if (drag) {
-      const { leaf: l, dir, hist } = drag;
+      const { t: l, dir, hist } = drag;
       drag = null;
       let vel = 0;
       if (hist.length > 1) {
@@ -884,7 +803,7 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
       const forwardSide = dir > 0 ? commit : !commit;
       spring(l, forwardSide ? 1 : 0, vel);
       if (commit) {
-        spread = dir > 0 ? l.i + 1 : l.i;
+        spread = dir > 0 ? l.k + 1 : l.k;
         focus = dir > 0 ? "L" : "R";
         events.onSpread?.(spread);
         pump();
@@ -945,6 +864,7 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     const dt = Math.min(0.2, (now - (orient.t || now)) / 1000);
     orient.t = now;
     orient.base ??= { x, y };
+    // The resting angle drifts back to neutral so holding the phone still is level.
     const k = 1 - Math.exp(-dt / 3.5);
     orient.base.x += (x - orient.base.x) * k;
     orient.base.y += (y - orient.base.y) * k;
@@ -973,7 +893,7 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     }
   }
 
-  // --- Frame loop -----------------------------------------------------------
+  // --- Frame loop ---------------------------------------------------------------------
   let raf = 0;
   let last = 0;
   let lastActive = performance.now();
@@ -981,7 +901,7 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
   // Adaptive resolution: if frames keep running long, render fewer pixels.
   let renderScale = 1;
   let frames = 0;
-  let slow = 0;
+  let slowFrames = 0;
   let warmup = 40;
 
   function invalidate() {
@@ -989,56 +909,46 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
   }
 
   function update(now: number, dt: number) {
-    let busy = updateLeaves(now, dt);
+    let busy = updateTurns(dt);
+    layout();
 
     pointer.sx = damp(pointer.sx, pointer.on ? pointer.x : 0, 3, dt);
     pointer.sy = damp(pointer.sy, pointer.on ? pointer.y : 0, 3, dt);
     orient.sx = damp(orient.sx, orient.x, 6, dt);
     orient.sy = damp(orient.sy, orient.y, 6, dt);
-    if (Math.abs(pointer.sx - (pointer.on ? pointer.x : 0)) + Math.abs(pointer.sy - (pointer.on ? pointer.y : 0)) > 1e-3) busy = true;
 
-    const openGoal = spread > 0 ? 1 : 0;
-    openness = damp(openness, openGoal, 2.6, dt);
-    if (Math.abs(openGoal - openness) < 1e-4) openness = openGoal;
-    else busy = true;
+    // Once nothing is in flight, lean back to a reading angle; tip forward again on a turn.
+    const inFlight = !!drag || turnables.some((l) => l.mode !== "rest" || (l.p > 0.06 && l.p < 0.94));
+    const restGoal = inFlight ? 0 : 1;
+    resting = reduced ? restGoal : resting + (restGoal - resting) * Math.min(1, dt * (restGoal > resting ? 1 : 3.4));
 
-    // Tip the passport towards the reader while a page is in flight, then settle back.
-    const turning = !!drag || leaves.some((l) => (l.mode === "tween" || l.mode === "spring") && l.p > 0.04 && l.p < 0.96);
-    if (turning) lastTurn = now;
-    const readGoal = now - lastTurn < 350 ? 0 : 1;
-    readAmt = damp(readAmt, readGoal, readGoal > readAmt ? 1.3 : 3.4, dt);
-    if (Math.abs(readAmt - readGoal) > 1e-3) busy = true;
-
-    const g = poseGoal();
-    const k = reduced ? 1 : 1 - Math.exp(-dt * 2.8);
-    view.spin += (g.spin - view.spin) * k;
-    view.fx += (g.fx - view.fx) * (reduced ? 1 : 1 - Math.exp(-dt * 3.2));
-    view.dist += (fitDistance(g) - view.dist) * k;
-    const theta = THREE.MathUtils.lerp(g.turn, g.read, smooth(readAmt));
-    view.theta += (theta - view.theta) * (reduced ? 1 : 1 - Math.exp(-dt * 3.5));
-    if (Math.abs(g.spin - view.spin) + Math.abs(g.fx - view.fx) + Math.abs(theta - view.theta) > 1e-4 || Math.abs(fitDistance(g) - view.dist) > 1e-3) busy = true;
+    const f = frame0();
+    const readAmt = smooth(resting) * f.r;
+    const tiltGoal = f.tilt + (f.read - f.tilt) * readAmt;
+    const k = reduced ? 1 : 1 - Math.exp(-dt * 3);
+    view.tilt += (tiltGoal - view.tilt) * k;
+    view.cx += (f.cx - view.cx) * (reduced ? 1 : 1 - Math.exp(-dt * 3.4));
+    const distGoal = fitDistance(f.spin, view.tilt, f.w, f.h);
+    view.dist += (distGoal - view.dist) * k;
+    if (Math.abs(tiltGoal - view.tilt) + Math.abs(f.cx - view.cx) > 1e-4 || Math.abs(distGoal - view.dist) > 1e-3) busy = true;
 
     const t = now / 1000;
     const sway = reduced ? 0 : 1;
     const px = pointer.sx * 0.07 + orient.sx * 0.12;
     const py = pointer.sy * 0.05 + orient.sy * 0.1;
-    pose.rotation.set(sway * (0.016 * Math.sin(t * 0.53) + 0.008 * Math.sin(t * 1.31 + 2)) - py * sway, 0, sway * (0.02 * Math.sin(t * 0.41 + 1) + 0.007 * Math.sin(t * 1.07)) - px * sway);
-    pose.position.set(0, HOVER + sway * 0.05 * Math.sin(t * 0.7), 0);
-    spin.rotation.y = view.spin + sway * 0.006 * Math.sin(t * 0.37 + 4);
-    book.position.set(-view.fx, 0, 0);
+    // A slow breathing sway, plus a lean towards the cursor or the phone's tilt.
+    world.rotation.x = sway * (0.016 * Math.sin(t * 0.53) + 0.008 * Math.sin(t * 1.31 + 2) - py);
+    world.rotation.z = sway * (-0.02 * Math.sin(t * 0.41 + 1) - 0.007 * Math.sin(t * 1.07) - px);
+    world.position.y = sway * 0.05 * Math.sin(t * 0.7);
+    spin.rotation.y = f.spin + 0.035 + sway * 0.006 * Math.sin(t * 0.37 + 4);
+    book.position.x = -view.cx;
 
-    camera.position.set(0, HOVER + view.dist * Math.cos(view.theta), view.dist * Math.sin(view.theta));
+    camera.position.set(0, view.dist * Math.cos(view.tilt), view.dist * Math.sin(view.tilt));
     camera.up.set(0, 0, -1);
-    camera.lookAt(0, HOVER, 0);
+    camera.lookAt(0, 0, 0);
 
-    const L = shared.uLightDir.value;
-    lightGoal.set(-0.45 + pointer.sx * 0.45, 0.85, 0.42 - pointer.sy * 0.35).normalize();
-    L.lerp(lightGoal, 1 - Math.exp(-dt * 5)).normalize();
-
-    layout();
-    scene.updateMatrixWorld();
-    deskMat.uniforms.uBookInv.value.copy(book.matrixWorld).invert();
-    deskMat.uniforms.uHover.value = pose.position.y;
+    // The key light follows the cursor a little, so glare slides over foil and laminate.
+    key.position.set(keyBase.x + (pointer.sx * 9 + orient.sx * 12), keyBase.y, keyBase.z - (pointer.sy * 7 + orient.sy * 9));
     return busy;
   }
 
@@ -1055,13 +965,13 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     if (warmup > 0) warmup--;
     else if (!skip && !painting && dt < 0.5) {
       frames++;
-      if (dt > 0.034) slow++;
+      if (dt > 0.034) slowFrames++;
       if (frames >= 45) {
-        if (slow > 30 && renderScale > 0.55) {
+        if (slowFrames > 30 && renderScale > 0.55) {
           renderScale *= 0.8;
           resize();
         }
-        frames = slow = 0;
+        frames = slowFrames = 0;
       }
     }
     if (!reduced || busy) invalidate();
@@ -1071,8 +981,8 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
   function resize() {
     width = Math.max(1, window.innerWidth);
     height = Math.max(1, window.innerHeight);
-    // Keep the multisampled drawing buffer near 2.6 MP however dense the screen is.
-    const dpr = Math.max(0.5, Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(2.6e6 / (width * height))) * renderScale);
+    // Keep the multisampled drawing buffer near 2.2 MP however dense the screen is.
+    const dpr = Math.max(0.5, Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(2.2e6 / (width * height))) * renderScale);
     renderer.setPixelRatio(dpr);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
@@ -1090,8 +1000,6 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     for (const entry of cache.values()) entry.tex.dispose();
     cache.clear();
     syncTextures();
-    foil.needsUpdate = true;
-    felt.needsUpdate = true;
     pump();
     invalidate();
   }
@@ -1107,7 +1015,13 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
   window.addEventListener("resize", resize);
 
   resize();
-  snapView();
+  layout();
+  {
+    const f = frame0();
+    view.tilt = f.tilt;
+    view.cx = f.cx;
+    view.dist = fitDistance(f.spin, f.tilt, f.w, f.h);
+  }
   enableOrientation(false);
   update(performance.now(), 1 / 60);
   renderer.compile(scene, camera);
@@ -1135,9 +1049,8 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
       window.removeEventListener("deviceorientation", onOrient);
       for (const { tex } of cache.values()) tex.dispose();
       cache.clear();
-      leaves.forEach((l) => l.mat.dispose());
-      backPaper.dispose();
       disposables.forEach((d) => d.dispose());
+      key.shadow.dispose();
       renderer.dispose();
     },
   };

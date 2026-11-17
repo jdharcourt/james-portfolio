@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "test": "node --experimental-strip-types --test tests/*.test.cjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "resume:pdf": "${CHROME:-google-chrome} --headless=new --no-pdf-header-footer --print-to-pdf=public/james-harcourt-resume.pdf ${RESUME_URL:-http://localhost:3000/resume}"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
