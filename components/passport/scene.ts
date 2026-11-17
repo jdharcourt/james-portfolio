@@ -978,6 +978,11 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
   let last = 0;
   let lastActive = performance.now();
   let skip = false;
+  // Adaptive resolution: if frames keep running long, render fewer pixels.
+  let renderScale = 1;
+  let frames = 0;
+  let slow = 0;
+  let warmup = 40;
 
   function invalidate() {
     if (!raf && !disposed) raf = requestAnimationFrame(frame);
@@ -1047,6 +1052,18 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     // When nothing is happening the sway is slow, so half the frame rate is enough.
     skip = t - lastActive > 2500 ? !skip : false;
     if (!skip) renderer.render(scene, camera);
+    if (warmup > 0) warmup--;
+    else if (!skip && !painting && dt < 0.5) {
+      frames++;
+      if (dt > 0.034) slow++;
+      if (frames >= 45) {
+        if (slow > 30 && renderScale > 0.55) {
+          renderScale *= 0.8;
+          resize();
+        }
+        frames = slow = 0;
+      }
+    }
     if (!reduced || busy) invalidate();
     else last = 0;
   }
@@ -1055,7 +1072,7 @@ export async function createPassport(canvas: HTMLCanvasElement, fonts: Fonts, ev
     width = Math.max(1, window.innerWidth);
     height = Math.max(1, window.innerHeight);
     // Keep the multisampled drawing buffer near 2.6 MP however dense the screen is.
-    const dpr = Math.max(0.75, Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(2.6e6 / (width * height))));
+    const dpr = Math.max(0.5, Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(2.6e6 / (width * height))) * renderScale);
     renderer.setPixelRatio(dpr);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;

@@ -13,7 +13,7 @@ npm run dev
 
 Edit `lib/data.ts` for Equilibrium, projects, experience, awards, education, skills and contact links. The home page and résumé use the same facts; set `resume: true` on a project to list it on the résumé. The November 2026 update drew on James's public LinkedIn headline and posts, [equilibrium.ie](https://equilibrium.ie) and Castleknock College's Young Scientist announcement. LinkedIn blocks automated access to the full profile, so roles and dates not confirmed by those sources were not added. The résumé lists only substantive projects; smaller GitHub experiments stay off it.
 
-Project descriptions were checked against the public READMEs for [Gate Lab](https://github.com/jdharcourt/gate-lab), [CodePaper](https://github.com/jdharcourt/CodePaper), [ytascii](https://github.com/jdharcourt/ytascii) and [Zana](https://github.com/jdharcourt/zana), on 8 October 2026.
+Project descriptions were checked against the public READMEs for [Wisprsight](https://github.com/jdharcourt/wisprsight) and [UniCAD Kit](https://github.com/TryUniCAD/Kit) on 17 November 2026.
 
 ## Chat API
 
@@ -35,10 +35,11 @@ The home page no longer shows the contribution calendar; the endpoint is kept fo
 
 The home page follows the idea of [emad.gg](https://emad.gg): a passport on a desk that opens into a portfolio. Here it is an Irish passport, with a burgundy pebbled-leather cover, gold-foil harp and lettering, a sideways data page with a holographic laminate, perforated document number, bilingual Irish/English labels, rubber stamps and engraved Irish landmarks on every page.
 
-- `components/passport/scene.ts` builds the book in Three.js: covers, page leaves, page-block edges and desk. Pages bend in a vertex shader; leather, foil, paper, laminate and desk are hand-written fragment shaders, so there are no environment or shadow maps.
-- `components/passport/pages.ts` lays out each page from `lib/data.ts` and draws it with Canvas 2D (`art.ts` holds the harp, stamps and illustrations). Links are hit-tested on the page itself and tinted on hover rather than underlined.
-- Rendering is on demand: nothing is drawn while the passport is idle. Only the six page textures nearest the open spread are kept on the GPU (768 px wide on small screens, 1024 px otherwise), the cover foil is a single-channel texture, and the drawing buffer is capped at about 3 megapixels.
-- Click or tap to open, drag or swipe to turn, arrow keys, Home, End and Escape also work. Phones show one page at a time. Section shortcuts appear on keyboard focus, and the same content is in the page as plain HTML for screen readers and for browsers without WebGL.
+- `components/passport/scene.ts` builds the book in Three.js: covers, the 16 paper leaves of a real 32-page booklet, page-block edges and desk. Pages bend and twist in a vertex shader; leather, foil, paper, laminate and desk are hand-written fragment shaders, so there are no environment or shadow maps. Page corners are cut in the geometry and the canvas is multisampled, so edges stay smooth.
+- `components/passport/pages.ts` lays out each page from `lib/data.ts` and draws it with Canvas 2D (`art.ts` holds the harp, stamps and illustrations). Content pages come first; the rest of the booklet is blank visa pages that share one texture per side. `components/passport/sections.ts` sets the page order. Links are hit-tested on the page itself and tinted on hover rather than underlined.
+- The passport floats over the desk, tilts towards the cursor (or a phone's gyroscope) and sways slightly when idle. Idle frames render at half rate, and the resolution steps down automatically on slow GPUs. With reduced motion, the sway and tilt are off and frames are only drawn on change.
+- Only the six page textures nearest the open spread are kept on the GPU (768 px wide on small screens, 1024 px otherwise). The cover foil and the desk's felt are single-channel textures, and the drawing buffer is capped at about 2.6 megapixels.
+- Click or tap to open, or drag the cover. Dragging a page curls it with the grabbed corner leading; a flick turns it from a short drag and a flick back cancels. Corners lift towards a nearby cursor. Arrow keys, Home, End and Escape also work. Phones show one page at a time. Section shortcuts appear on keyboard focus, and the same content is in the page as plain HTML for screen readers and for browsers without WebGL.
 
 The résumé keeps the earlier "lab notebook" look (Instrument Serif, IBM Plex Sans and Mono) with [Notra UI](https://ui.usenotra.com) components installed through the shadcn registry.
 
