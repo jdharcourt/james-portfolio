@@ -1,6 +1,6 @@
 import { awards, education, equilibrium, experience, profile, projects, socials, toolbox, type Project } from "@/lib/data";
 import * as A from "./art";
-import { FACE_IDS, pageOf, spreadOf } from "./sections";
+import { FACE_IDS, pageOf } from "./sections";
 
 export type Fonts = { sans: string; mono: string; serif: string; script: string };
 export type LinkTarget = { href: string } | { spread: number };
@@ -13,6 +13,8 @@ type FaceDef = {
   title: string;
   pal: Pal;
   holo?: boolean;
+  /** Faces with the same key share one texture (the blank visa pages). */
+  shared?: string;
   draw: (p: Painter) => void;
 };
 
@@ -256,19 +258,19 @@ const PROJECT_ART: Record<string, ProjectArt> = {
     status: "Award winner",
     stamps: [{ x: 730, y: 880, rot: 0.16, color: "#2f7a55", shape: "circle", lines: ["AWARD", "SCIFEST · EIRGRID SUSTAINABLE FUTURE", "MAY 2023"], seed: 6 }],
   },
-  "Gate Lab": {
-    scene: "causeway",
-    caption: "Giant's Causeway · Co. Antrim",
-    pal: PAL.teal,
-    status: "Live",
-    stamps: [{ x: 250, y: 900, rot: -0.1, color: "#2c46a8", shape: "rect", lines: ["LIVE", "DEMO · IN BROWSER", "2026"], seed: 7 }],
-  },
-  CodePaper: {
+  Wisprsight: {
     scene: "glendalough",
     caption: "Glendalough · Co. Wicklow",
     pal: PAL.sage,
-    status: "Live",
-    stamps: [{ x: 730, y: 890, rot: 0.14, color: "#7a3a8c", shape: "oval", lines: ["LIVE", "LEAVING CERT · COMPUTER SCIENCE", "2026"], seed: 8, w: 300, h: 210 }],
+    status: "In development",
+    stamps: [{ x: 720, y: 900, rot: 0.14, color: "#7a3a8c", shape: "oval", lines: ["SILENT", "ON-DEVICE · WEBGPU", "2026"], seed: 8, w: 300, h: 210 }],
+  },
+  UniCAD: {
+    scene: "causeway",
+    caption: "Giant's Causeway · Co. Antrim",
+    pal: PAL.teal,
+    status: "Open source",
+    stamps: [{ x: 260, y: 900, rot: -0.1, color: "#2c46a8", shape: "rect", lines: ["INTERCHANGE", "SLDPRT · FCSTD · F3D", "2026"], seed: 7, w: 330 }],
   },
 };
 
@@ -303,6 +305,7 @@ function projectFace(project: Project, index: number, pageNo: number): FaceDef {
       y = p.field("Teicneolaíocht", "Stack", project.stack.join(" · "), x0, y + 12, { size: 22, max: x1 - x0, family: "mono" });
       y = p.field("Foinse", "Source", linkText(project.href).toUpperCase(), x0, y - 4, { size: 24, link: { href: project.href } });
       if (project.demo) y = p.field("Taispeántas", "Demo", linkText(project.demo).toUpperCase(), x0, y - 4, { size: 24, link: { href: project.demo } });
+      if (project.site) y = p.field("Suíomh", "Website", linkText(project.site).toUpperCase(), x0, y - 4, { size: 24, link: { href: project.site } });
       p.mrz([`PROJECT<<${mrzName(project.name)}<<HARCOURT<<JAMES`, `${mrzName(project.category)}<<${project.year.replace(/\D/g, "")}`], Math.max(y + 10, 770));
       art.stamps.forEach((s) => p.stamp({ ...s, y: Math.max(s.y, y + 170) }));
       p.footer(pageNo, "Projects");
@@ -447,9 +450,6 @@ function buildFaces(): FaceDef[] {
     },
   });
 
-  // Contents is filled in once the page order is known.
-  const contentsIndex = faces.length;
-  faces.push({ id: "contents", title: "Contents", pal: PAL.mint, draw: () => undefined });
 
   faces.push({
     id: "equilibrium",
@@ -473,7 +473,7 @@ function buildFaces(): FaceDef[] {
       p.mrz(["WORK<<EQUILIBRIUM<<HARCOURT<<JAMES", "CEO<<COFOUNDER<<DUBLIN<<2026"], y + 4);
       p.stamp({ x: 280, y: Math.max(1000, y + 200), rot: -0.18, color: "#2c46a8", shape: "circle", lines: ["CURRENT", "CEO & CO-FOUNDER · DUBLIN", "JUL 2026"], seed: 11 });
       p.stamp({ x: 720, y: Math.max(990, y + 190), rot: 0.1, color: "#a3323f", shape: "rect", lines: ["PATCH '26", "DOGPATCH LABS", "FIRST PROTOTYPE"], seed: 12 });
-      p.footer(4, "Equilibrium");
+      p.footer(pageOf("equilibrium"), "Equilibrium");
       p.caption("Poolbeg · Dublin Bay");
     },
   });
@@ -588,11 +588,6 @@ function buildFaces(): FaceDef[] {
     },
   });
 
-  // Keep the paper leaves paired so the inside back cover lands on a recto.
-  if ((faces.length - 2) % 2) {
-    faces.push({ id: "visas", title: "Visas", pal: PAL.lilac, draw: (p) => (p.background(14), p.header("Visas", "Víosaí", 196), p.caption("Ar fáil · Available")) });
-  }
-
   faces.push({
     id: "contact",
     title: "Contact",
@@ -613,52 +608,61 @@ function buildFaces(): FaceDef[] {
     },
   });
 
-  faces[contentsIndex].draw = (p) => {
-    p.background(3);
-    p.scene("beckett");
-    p.header("Contents", "Clár ábhair", 196);
-    const { x0, x1, ctx } = p;
-    let y = 290;
-    const row = (name: string, id: string, indent = 0, size = 36) => {
-      const no = String(pageOf(id)).padStart(2, "0");
-      const w = p.text(name, x0 + indent, y, { size, weight: indent ? 400 : 500, color: INK });
-      p.text(no, x1, y, { size: 26, weight: 500, color: BLUE, align: "right", family: "mono" });
-      ctx.save();
-      ctx.strokeStyle = BLUE;
-      ctx.globalAlpha = 0.4;
-      ctx.setLineDash([2, 8]);
-      ctx.beginPath();
-      ctx.moveTo(x0 + indent + w + 16, y - 6);
-      ctx.lineTo(x1 - 54, y - 6);
-      ctx.stroke();
-      ctx.restore();
-      p.link(x0 + indent - 8, y - size, x1 - x0 - indent + 16, size + 16, { spread: spreadOf(id) }, name);
-      y += indent ? 50 : 66;
-    };
-    row("Identity", "identity");
-    row("Equilibrium", "equilibrium");
-    row("Projects", "project-0");
-    y -= 8;
-    projects.forEach((pr, i) => row(pr.name, `project-${i}`, 34, 29));
-    y += 14;
-    row("Experience", "experience");
-    row("Awards & education", "awards");
-    row("Toolbox", "toolbox");
-    row("Observations", "notes");
-    row("Contact", "contact");
-    p.mrz(["CONTENTS<<HARCOURT<<JAMES"], y + 6);
-    p.footer(3, "Contents");
-    p.caption("Samuel Beckett Bridge · Dublin");
-  };
+  // Blank visa pages fill the booklet out to its real thickness. They share
+  // one texture per side, so they cost almost nothing to keep.
+  while (faces.length < FACE_IDS.length - 1) {
+    const id = FACE_IDS[faces.length];
+    const verso = faces.length % 2 === 1;
+    faces.push({
+      id,
+      title: "Visas",
+      pal: verso ? PAL.lilac : PAL.mint,
+      shared: verso ? "visa-verso" : "visa-recto",
+      draw(p) {
+        p.background(verso ? 21 : 22);
+        p.scene("contours");
+        p.header("Visas", "Víosaí", 196);
+        p.caption(verso ? "Éire" : "Ireland");
+      },
+    });
+  }
+
+  faces.push({
+    id: "inside-back",
+    title: "Inside back cover",
+    pal: PAL.lilac,
+    draw(p) {
+      p.background(23);
+      const c = p.ctx;
+      A.harp(c, A.PW / 2 - 52, 220, 150, "#4b6b5c", 0.9);
+      let y = 480;
+      for (const line of ["Is le James Harcourt an pas seo.", "This passport remains the property of James Harcourt."]) {
+        for (const l of p.wrap(line, 760, 34, 500, "serif")) {
+          p.text(l, A.PW / 2, y, { size: 34, weight: 500, family: "serif", color: "#3b4a44", align: "center" });
+          y += 46;
+        }
+        y += 14;
+      }
+      A.rosette(c, A.PW / 2, y + 80, 60, "#4b6b5c", 0.5, 14);
+      y += 250;
+      p.text("Má aimsítear é / If found, please contact".toUpperCase(), A.PW / 2, y, { size: 18, weight: 500, color: BLUE, track: 2, align: "center" });
+      const w = p.text(profile.email.toUpperCase(), A.PW / 2, y + 56, { size: 34, weight: 500, family: "mono", color: BLUE, track: 1, align: "center" });
+      p.link(A.PW / 2 - w / 2 - 8, y + 20, w + 16, 50, { href: "mailto:" + profile.email }, profile.email);
+      p.caption("Baile Átha Cliath · Dublin");
+    },
+  });
 
   return faces;
 }
 
 export const FACES = buildFaces();
 if (FACES.map((f) => f.id).join() !== FACE_IDS.join()) throw new Error("Passport page order is out of sync with sections.ts");
-/** Paper leaves between the covers (each carries two faces). */
-export const LEAVES = (FACES.length - 3) / 2;
-export { LAST_SPREAD } from "./sections";
+export { LAST_SPREAD, LEAVES } from "./sections";
+
+/** Texture cache key: shared for blank visa pages, otherwise the face itself. */
+export function textureKey(face: number) {
+  return FACES[face]?.shared ?? String(face);
+}
 
 /** Where the holographic OVD sits on the data page, in page UV (u, v) and cm radius. */
 export const DATA_OVD = { u: 495 / A.PW, v: (A.PH - 1327) / A.PH, r: 0.75 };

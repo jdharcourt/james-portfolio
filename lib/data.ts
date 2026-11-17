@@ -7,6 +7,8 @@ export type Project = {
   href: string;
   featured?: boolean;
   demo?: string;
+  /** Project website, when it is not a demo. */
+  site?: string;
   /** Shorter line for the résumé; defaults to the description. */
   summary?: string;
   /** Listed on the printable résumé as well as the home page. */
@@ -44,22 +46,26 @@ export const projects: Project[] = [
     href: "https://github.com/jdharcourt/Solar-Tracking",
   },
   {
-    name: "Gate Lab",
-    category: "Learning tools",
+    name: "Wisprsight",
+    category: "Silent speech",
     year: "2026",
-    description: "Browser-based Boolean logic workbench: draw gate circuits, build expressions and generate truth tables.",
-    stack: ["TypeScript", "Next.js"],
-    href: "https://github.com/jdharcourt/gate-lab",
-    demo: "https://gate-lab-taupe.vercel.app",
+    resume: true,
+    description: "Camera-only silent dictation for laptops: mouth a sentence without a sound and a local lip-reading model types it. Runs in the browser on WebGPU, learns from your corrections on-device and never needs the microphone.",
+    stack: ["Python", "TypeScript", "WebGPU", "Computer vision"],
+    summary: "Camera-only silent dictation: a local lip-reading model in the browser on WebGPU that learns from corrections on-device.",
+    href: "https://github.com/jdharcourt/wisprsight",
+    demo: "https://wisprsight.vercel.app",
   },
   {
-    name: "CodePaper",
-    category: "Learning tools",
+    name: "UniCAD",
+    category: "CAD tooling",
     year: "2026",
-    description: "Browser Python IDE for Leaving Certificate Computer Science practice, checked against exam marking rubrics.",
-    stack: ["Python", "Pyodide", "TypeScript"],
-    href: "https://github.com/jdharcourt/CodePaper",
-    demo: "https://code-paper-blush.vercel.app",
+    resume: true,
+    description: "Open-source Python SDK for parametric CAD file interchange. Readers turn SOLIDWORKS, FreeCAD, CATIA and Fusion files into one neutral document and writers rebuild it in another format, without the CAD software installed.",
+    stack: ["Python", "CAD formats", "CLI"],
+    summary: "Open-source Python SDK for parametric CAD file interchange between SOLIDWORKS, FreeCAD, CATIA and Fusion.",
+    href: "https://github.com/TryUniCAD/Kit",
+    site: "https://www.unifiedcad.org",
   },
 ];
 

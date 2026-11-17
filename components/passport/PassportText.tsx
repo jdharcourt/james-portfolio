@@ -49,6 +49,14 @@ export function PassportText() {
                     </a>
                   </>
                 )}
+                {p.site && (
+                  <>
+                    {" · "}
+                    <a href={p.site} {...external}>
+                      Website
+                    </a>
+                  </>
+                )}
               </p>
             </li>
           ))}

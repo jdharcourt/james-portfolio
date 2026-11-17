@@ -365,6 +365,59 @@ export function triquetra(ctx: Ctx, cx: number, cy: number, R: number, color: st
   ctx.restore();
 }
 
+/**
+ * Seamless felt tile (single channel). Baked once so the desk shader only
+ * samples a texture instead of running fibre noise on every pixel.
+ */
+export function feltTile(size = 512) {
+  const c = scratch(size, size);
+  const g = c.getContext("2d", { willReadFrequently: true })!;
+  const r = rng(77);
+  g.fillStyle = "#808080";
+  g.fillRect(0, 0, size, size);
+  // Draw at the tile offsets around the edge so everything wraps.
+  const wrap = (x: number, y: number, reach: number, draw: (x: number, y: number) => void) => {
+    for (const dx of [-size, 0, size])
+      for (const dy of [-size, 0, size]) {
+        const px = x + dx;
+        const py = y + dy;
+        if (px > -reach && px < size + reach && py > -reach && py < size + reach) draw(px, py);
+      }
+  };
+  for (let i = 0; i < 9000; i++) {
+    const x = r() * size;
+    const y = r() * size;
+    const v = r();
+    const s = 1 + r() * 2.5;
+    g.fillStyle = v > 0.5 ? `rgba(255,255,255,${0.05 + r() * 0.08})` : `rgba(0,0,0,${0.05 + r() * 0.1})`;
+    wrap(x, y, s, (px, py) => g.fillRect(px, py, s, s));
+  }
+  g.lineCap = "round";
+  for (let i = 0; i < 2600; i++) {
+    const x = r() * size;
+    const y = r() * size;
+    const a = r() * Math.PI * 2;
+    const len = 6 + r() * 26;
+    const bend = (r() - 0.5) * len * 0.8;
+    const light = r() > 0.45;
+    g.strokeStyle = light ? `rgba(255,255,255,${0.08 + r() * 0.14})` : `rgba(0,0,0,${0.1 + r() * 0.16})`;
+    g.lineWidth = 0.5 + r() * 1.1;
+    wrap(x, y, len, (px, py) => {
+      const ex = px + Math.cos(a) * len;
+      const ey = py + Math.sin(a) * len;
+      g.beginPath();
+      g.moveTo(px, py);
+      g.quadraticCurveTo((px + ex) / 2 - Math.sin(a) * bend, (py + ey) / 2 + Math.cos(a) * bend, ex, ey);
+      g.stroke();
+    });
+  }
+  const rgba = g.getImageData(0, 0, size, size).data;
+  const out = new Uint8Array(size * size);
+  for (let i = 0; i < out.length; i++) out[i] = rgba[i * 4];
+  c.width = c.height = 1;
+  return out;
+}
+
 // 5 x 7 dot-matrix glyphs for the perforated document number.
 const DOTS: Record<string, string[]> = {
   J: ["00111", "00010", "00010", "00010", "00010", "10010", "01100"],

@@ -39,9 +39,9 @@ float archY(float s) {
 `;
 
 export const LEAF_VS = /* glsl */ `
-uniform float uP;
-uniform float uCurl;
-uniform float uTwist;
+uniform float uP;     // 0 = resting on the right, 1 = resting on the left
+uniform float uBend;  // total curl across the page, radians
+uniform float uTwist; // extra turn of the top edge over the bottom edge, radians
 uniform float uHinge;
 uniform float uLift;
 uniform float uRest;
@@ -52,14 +52,14 @@ varying vec3 vPos;
 varying float vBookX;
 
 vec3 leaf(float s, float z) {
-  float sp = sin(3.14159265 * uP);
-  float k = uCurl * sp / uW;
-  float th0 = 3.14159265 * uP - k * uW * 0.5 + uTwist * sp * (z / uH);
+  float k = uBend / uW;
+  // Never let the hinge end dip into the stack it is leaving or landing on.
+  float th0 = clamp(3.14159265 * uP - 0.5 * uBend + uTwist * (z / uH), 0.0, 3.14159265);
   float th = th0 + k * s;
   vec2 c = abs(k) < 1e-4 ? vec2(s * cos(th0), s * sin(th0))
                          : vec2(sin(th) - sin(th0), cos(th0) - cos(th)) / k;
   vec3 p = vec3(c.x, c.y + uHinge, z);
-  p.y += archY(s) * (1.0 - sp) * uRest;
+  p.y += archY(s) * (1.0 - sin(3.14159265 * uP)) * uRest;
   return p;
 }
 
@@ -93,7 +93,6 @@ uniform float uHoloBack;
 uniform float uFaceFront;
 uniform float uFaceBack;
 uniform float uSelf;
-uniform float uRadius;
 uniform float uW;
 uniform float uH;
 uniform vec4 uTurn;
@@ -109,9 +108,6 @@ varying float vBookX;
 
 void main() {
   vec2 q = vec2(vUv.x * uW, vUv.y * uH);
-  vec2 cc = vec2(uW - uRadius, clamp(q.y, uRadius, uH - uRadius));
-  if (q.x > uW - uRadius && length(q - cc) > uRadius) discard;
-
   bool front = gl_FrontFacing;
   vec2 uv = front ? vUv : vec2(1.0 - vUv.x, vUv.y);
   vec3 alb = front
@@ -124,8 +120,10 @@ void main() {
   vec3 V = normalize(cameraPosition - vPos);
   vec3 L = normalize(uLightDir);
 
-  // Paper fibre and tooth.
-  float fib = fbm(q * vec2(26.0, 9.0)) * 0.6 + vnoise(q * 90.0) * 0.4;
+  // Paper fibre and tooth; the finest layer fades out before it can shimmer.
+  float fw = length(fwidth(q));
+  float tooth = mix(vnoise(q * 90.0), 0.5, smoothstep(0.004, 0.012, fw));
+  float fib = fbm(q * vec2(26.0, 9.0)) * 0.6 + tooth * 0.4;
   alb *= 0.955 + 0.07 * fib;
 
   // Hovered link: a faint ink bloom instead of an underline.
@@ -138,7 +136,8 @@ void main() {
   float ao = mix(0.58, 1.0, smoothstep(0.0, 0.16, vUv.x)) * mix(0.86, 1.0, smoothstep(0.0, 0.025, 1.0 - vUv.x));
   vec3 col = alb * (ambient(n) * 1.25 + uLightCol * diff * 0.95) * ao;
   vec3 hv = normalize(L + V);
-  col += uLightCol * 0.035 * pow(max(dot(n, hv), 0.0), 20.0);
+  // Soft satin sheen that slides across the paper as the passport tilts.
+  col += uLightCol * 0.05 * pow(max(dot(n, hv), 0.0), 18.0);
 
   // Laminated data page: thin-film rainbow that shifts with the view and light.
   if (holo > 0.5) {
@@ -228,6 +227,8 @@ void main() {
   float capSign = sign(vLN.y);
 
   vec2 gp = vec2(vLocal.x, vLocal.z) * 11.0;
+  // Fade the pebble relief once a cell is smaller than a couple of pixels.
+  float relief = 1.0 - smoothstep(0.25, 0.6, length(fwidth(gp)));
   float g0 = grain(gp);
   float mottling = fbm(gp * 0.12);
   vec3 tint = vec3(0.078, 0.0115, 0.024) * (0.9 + 0.22 * mottling);
@@ -235,7 +236,7 @@ void main() {
     float e = 0.08;
     float gx = grain(gp + vec2(e, 0.0)) - g0;
     float gz = grain(gp + vec2(0.0, e)) - g0;
-    n = normalize(n - (vT * gx + vB * gz) * 1.6 * capSign);
+    n = normalize(n - (vT * gx + vB * gz) * 1.6 * capSign * relief);
   }
 
   float foil = 0.0;
@@ -252,9 +253,10 @@ void main() {
   float ndh = max(dot(n, hv), 0.0);
   float diff = clamp((ndl + 0.2) / 1.2, 0.0, 1.0);
   vec3 leather = tint * (ambient(n) * 1.6 + uLightCol * diff * 1.15);
-  leather += uLightCol * (0.05 + 0.05 * g0) * pow(ndh, 14.0);
+  leather += uLightCol * (0.05 + 0.05 * g0 * relief) * pow(ndh, 14.0);
   leather += vec3(0.02, 0.006, 0.01) * pow(1.0 - max(dot(n, V), 0.0), 3.0);
-  if (!cap) leather *= 0.72;
+  // Board edges: the leather turns over a rounded edge and darkens slightly.
+  if (!cap) leather *= 0.78;
 
   vec3 col = leather;
   if (foil > 0.002) {
@@ -298,6 +300,7 @@ void main() {
 export const BLOCK_FS = /* glsl */ `
 uniform float uY0;
 uniform float uY1;
+uniform float uLeaf;
 ${lightPars}
 varying vec3 vPos;
 varying vec3 vN;
@@ -306,9 +309,14 @@ void main() {
   vec3 n = normalize(vN);
   if (!gl_FrontFacing) n = -n;
   vec3 L = normalize(uLightDir);
-  float leaves = max((uY1 - uY0) / 0.006, 1.0);
-  float stripe = 0.86 + 0.14 * sin(vT * leaves * 6.2831);
-  vec3 paper = vec3(0.78, 0.74, 0.66) * stripe;
+  // One fine line per leaf, blended to an even tone once lines get sub-pixel.
+  float leaves = max((uY1 - uY0) / uLeaf, 1.0);
+  float f = vT * leaves;
+  float w = fwidth(f);
+  float e = abs(fract(f) - 0.5) * 2.0; // 0 mid-leaf, 1 at the seam between leaves
+  float line = smoothstep(0.55 - w, 1.0, e);
+  float stripe = mix(1.0 - 0.16 * line, 0.94, smoothstep(0.35, 0.9, w));
+  vec3 paper = vec3(0.8, 0.77, 0.7) * stripe;
   float diff = clamp((dot(n, L) + 0.3) / 1.3, 0.0, 1.0);
   vec3 col = paper * (ambient(n) * 1.3 + uLightCol * diff * 0.8);
   gl_FragColor = vec4(col, 1.0);
@@ -327,9 +335,10 @@ void main() {
 `;
 
 export const DESK_FS = /* glsl */ `
+uniform sampler2D uFelt;
 uniform mat4 uBookInv;
 uniform vec4 uFoot;
-uniform float uLiftShadow;
+uniform float uHover;
 ${lightPars}
 ${noise}
 varying vec3 vPos;
@@ -341,29 +350,26 @@ float sdRoundBox(vec2 p, vec2 b, float r) {
 
 void main() {
   vec2 p = vPos.xz;
-  // Woven felt: broad mottling, fine tooth and short stray fibres.
-  float broad = fbm(p * 0.35);
-  float tooth = fbm(p * 7.0);
-  // Short fibres in many directions: each noise cell picks its own angle.
-  float fibres = 0.0;
-  for (int i = 0; i < 3; i++) {
-    float a = float(i) * 2.1 + 0.4;
-    vec2 q = mat2(cos(a), -sin(a), sin(a), cos(a)) * p;
-    fibres += smoothstep(0.72, 0.96, vnoise(q * vec2(28.0, 3.5) + float(i) * 13.0)) * smoothstep(0.35, 0.75, vnoise(p * 1.7 + float(i) * 5.0));
-  }
-  vec3 base = vec3(0.05, 0.042, 0.034) * (0.8 + 0.3 * broad + 0.28 * tooth) + vec3(0.008, 0.007, 0.006) * fibres;
+  // Felt: a pre-baked fibre tile at two scales, plus broad mottling.
+  float fine = texture2D(uFelt, p / 5.0).r;
+  float coarse = texture2D(uFelt, p / 13.0 + 0.37).r;
+  float broad = vnoise(p * 0.3) * 0.6 + vnoise(p * 0.9 + 3.1) * 0.4;
+  vec3 base = vec3(0.05, 0.042, 0.034) * (0.78 + 0.32 * broad) * (0.72 + 0.56 * mix(fine, coarse, 0.35));
 
   // Warm pool of light falling off towards the edges of the frame.
   float d = length(p - vec2(-2.5, -4.0));
   float pool = 0.5 + 1.05 * exp(-d * d / 320.0);
 
-  vec3 b = (uBookInv * vec4(vPos, 1.0)).xyz;
+  // Follow the light up to the floating passport to find its shadow.
+  vec3 L = normalize(uLightDir);
+  vec3 hit = vPos + L * (uHover / max(L.y, 0.2));
+  vec3 b = (uBookInv * vec4(hit, 1.0)).xyz;
   vec2 c = vec2(uFoot.x + uFoot.y, uFoot.z + uFoot.w) * 0.5;
   vec2 hs = vec2(uFoot.y - uFoot.x, uFoot.w - uFoot.z) * 0.5;
-  float sd = sdRoundBox(b.xz - c - vec2(0.18, 0.3), hs, 0.45);
-  float soft = 1.0 - smoothstep(-0.4, 1.9 + uLiftShadow, sd);
-  float contact = 1.0 - smoothstep(-0.06, 0.22, sdRoundBox(b.xz - c, hs, 0.45));
-  float shade = 1.0 - 0.55 * soft - 0.35 * contact;
+  float sd = sdRoundBox(b.xz - c, hs, 0.45);
+  float blur = 0.6 + uHover * 2.2;
+  float soft = 1.0 - smoothstep(-blur * 0.6, blur, sd);
+  float shade = 1.0 - (0.62 - 0.12 * clamp(uHover, 0.0, 1.0)) * soft;
 
   vec3 col = base * pool * shade * (vec3(0.9, 0.86, 0.8) + uLightCol * 0.25);
   gl_FragColor = vec4(col, 1.0);
