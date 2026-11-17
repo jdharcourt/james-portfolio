@@ -20,10 +20,10 @@ export default function Resume() {
         <div className="resume-contact"><a href={`mailto:${profile.email}`}>{profile.email}</a><a href={`https://${profile.site}`}>{profile.site}</a><a href={socials.github}>github.com/jdharcourt</a><a href={socials.linkedin}>linkedin.com/in/james-harcourt</a><span>{profile.location}</span></div>
       </header>
       <p className="resume-summary">{profile.intro}</p>
-      <section className="resume-section"><h2>Experience</h2><Timeline entries={experience} label="Experience" variant="resume" /></section>
-      <section className="resume-section"><h2>Awards</h2><Timeline entries={awards} label="Awards" variant="resume" /></section>
-      <section className="resume-section"><h2>Selected projects</h2><Timeline entries={selected} label="Selected projects" variant="resume" /></section>
-      <section className="resume-section"><h2>Education</h2><Timeline entries={education} label="Education" variant="resume" /></section>
+      <section className="resume-section"><h2>Experience</h2><Timeline entries={experience} label="Experience" /></section>
+      <section className="resume-section"><h2>Awards</h2><Timeline entries={awards} label="Awards" /></section>
+      <section className="resume-section"><h2>Selected projects</h2><Timeline entries={selected} label="Selected projects" /></section>
+      <section className="resume-section"><h2>Education</h2><Timeline entries={education} label="Education" /></section>
       <section className="resume-section"><h2>Skills</h2><p className="resume-skills">{toolbox.join(" · ")}</p></section>
     </article>
   </main><Footer /></>;

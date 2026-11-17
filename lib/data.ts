@@ -27,15 +27,6 @@ export const projects: Project[] = [
     href: "https://github.com/jdharcourt/GlucoBit",
   },
   {
-    name: "CertifyMe",
-    category: "PCB tooling",
-    year: "2026",
-    resume: true,
-    description: "KiCad plugin and CLI that links datasheets, generates priced bills of materials and verifies parts against DigiKey.",
-    stack: ["Python", "KiCad", "DigiKey API"],
-    href: "https://github.com/jdharcourt/CertifyMe",
-  },
-  {
     name: "Pointy R1",
     category: "Aerospace",
     year: "2026",
