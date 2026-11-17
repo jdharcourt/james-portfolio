@@ -160,7 +160,7 @@ export class Painter {
   }
 
   label(ga: string, en: string, x: number, y: number) {
-    this.text(`${ga}/${en}`, x, y, { size: 19, weight: 500, color: BLUE });
+    this.text(ga === en ? en : `${ga}/${en}`, x, y, { size: 19, weight: 500, color: BLUE });
   }
 
   /** Bilingual label above a typewritten value. Returns the next baseline. */
