@@ -7,9 +7,11 @@ export type Project = {
   href: string;
   featured?: boolean;
   demo?: string;
+  /** Project website, when it is not a demo. */
+  site?: string;
   /** Shorter line for the résumé; defaults to the description. */
   summary?: string;
-  /** Listed on the printable résumé as well as the home page. */
+  /** Listed among the key projects on the one-page résumé. */
   resume?: boolean;
 };
 
@@ -23,23 +25,13 @@ export const projects: Project[] = [
     description:
       "A low-cost IoT glucose display. A CircuitPython device pulls live readings from the Dexcom cloud over WiFi, shows them on a colour LCD, and sounds audible and LED alarms on lows, with a native iOS companion app over Bluetooth. Placed 3rd in Technology and won the Medtronic Special Award at the 2026 Young Scientist exhibition.",
     stack: ["CircuitPython", "Swift / SwiftUI", "BLE", "Custom PCB", "OTA updates"],
-    summary: "Low-cost IoT glucose display with audible and LED low alarms and a native iOS companion app over Bluetooth, on a custom PCB.",
+    summary: "Low-cost IoT glucose display on a custom PCB: pulls live Dexcom readings over WiFi, alarms on lows and pairs with a native iOS app over Bluetooth.",
     href: "https://github.com/jdharcourt/GlucoBit",
-  },
-  {
-    name: "CertifyMe",
-    category: "PCB tooling",
-    year: "2026",
-    resume: true,
-    description: "KiCad plugin and CLI that links datasheets, generates priced bills of materials and verifies parts against DigiKey.",
-    stack: ["Python", "KiCad", "DigiKey API"],
-    href: "https://github.com/jdharcourt/CertifyMe",
   },
   {
     name: "Pointy R1",
     category: "Aerospace",
     year: "2026",
-    resume: true,
     description: "Thrust-vector-controlled model rocket with telemetry and flight data analysis.",
     stack: ["PCB design", "CAD", "Python", "Control"],
     href: "https://github.com/BasilAmin/pointy_rocket",
@@ -53,22 +45,26 @@ export const projects: Project[] = [
     href: "https://github.com/jdharcourt/Solar-Tracking",
   },
   {
-    name: "Gate Lab",
-    category: "Learning tools",
+    name: "UniCAD",
+    category: "CAD tooling",
     year: "2026",
-    description: "Browser-based Boolean logic workbench: draw gate circuits, build expressions and generate truth tables.",
-    stack: ["TypeScript", "Next.js"],
-    href: "https://github.com/jdharcourt/gate-lab",
-    demo: "https://gate-lab-taupe.vercel.app",
+    resume: true,
+    description: "Open-source Python SDK for parametric CAD file interchange. Readers turn SOLIDWORKS, FreeCAD, CATIA and Fusion files into one neutral document and writers rebuild it in another format, without the CAD software installed.",
+    stack: ["Python", "CAD formats", "CLI"],
+    summary: "Open-source Python SDK for parametric CAD file interchange between SOLIDWORKS, FreeCAD, CATIA and Fusion.",
+    href: "https://github.com/TryUniCAD/Kit",
+    site: "https://www.unifiedcad.org",
   },
   {
-    name: "CodePaper",
-    category: "Learning tools",
+    name: "Wisprsight",
+    category: "Silent speech",
     year: "2026",
-    description: "Browser Python IDE for Leaving Certificate Computer Science practice, checked against exam marking rubrics.",
-    stack: ["Python", "Pyodide", "TypeScript"],
-    href: "https://github.com/jdharcourt/CodePaper",
-    demo: "https://code-paper-blush.vercel.app",
+    resume: true,
+    description: "Camera-only silent dictation for laptops: mouth a sentence without a sound and a local lip-reading model types it. Runs in the browser on WebGPU, learns from your corrections on-device and never needs the microphone.",
+    stack: ["Python", "TypeScript", "WebGPU", "Computer vision"],
+    summary: "Camera-only silent dictation: a local lip-reading model in the browser on WebGPU that learns from corrections on-device.",
+    href: "https://github.com/jdharcourt/wisprsight",
+    demo: "https://wisprsight.vercel.app",
   },
 ];
 
@@ -95,6 +91,7 @@ export type Entry = {
   org: string;
   period: string;
   description?: string;
+  href?: string;
 };
 
 export const experience: Entry[] = [
@@ -102,6 +99,7 @@ export const experience: Entry[] = [
     title: "CEO & Co-founder",
     org: "Equilibrium",
     period: "Jul 2026 – Present",
+    href: "https://equilibrium.ie",
     description: "Leading a four-founder smart-building start-up: wireless sensing and local predictive control for existing commercial HVAC, targeting up to 30% lower HVAC energy use. Prototype deployed at Dogpatch Labs.",
   },
   {
@@ -190,9 +188,10 @@ export const profile = {
   role: "Hardware & software engineer",
   headline: "CEO & Co-founder, Equilibrium",
   location: "Dublin, Ireland",
-  email: "hi@jamesharcourt.ie",
+  email: "james@harcourt.cc",
   site: "jamesharcourt.ie",
   intro: "I design embedded systems, health-tech and smart-building products, from schematic and firmware to cloud and app. I like reliable, low-cost devices that feel calm to use.",
   about: "Most of my work starts with a real problem, like making glucose data glanceable for someone living with diabetes, or making an old building’s HVAC behave. I follow it all the way down: schematic and PCB, firmware on the metal, the cloud calls and the app in your hand.",
+  resumeSummary: "Hardware and software engineer and co-founder of Equilibrium, a Dublin smart-building start-up. I take products from schematic, PCB and firmware through to cloud services and native apps; my glucose monitor GlucoBit placed 3rd in Technology at the 2026 Young Scientist exhibition.",
   approach: "Outside the code I enjoy the hands-on side: soldering, 3D printing and designing boards.",
 };
