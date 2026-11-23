@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { awards, education, equilibrium, experience, profile, projects, socials, toolbox } from "@/lib/data";
+import { seoImages } from "@/lib/seo";
 
 const external = { target: "_blank", rel: "noopener noreferrer" } as const;
+const identity = { target: "_blank", rel: "me noopener noreferrer" } as const;
 
 /**
  * The passport's contents as plain HTML: read by screen readers and search
@@ -92,12 +94,28 @@ export function PassportText() {
       <section aria-labelledby="pt-contact">
         <h2 id="pt-contact">Contact</h2>
         <p>
-          <a href={`mailto:${profile.email}`}>{profile.email}</a> · <a href={socials.linkedin} {...external}>LinkedIn</a> ·{" "}
-          <a href={socials.github} {...external}>
+          <a href={`mailto:${profile.email}`}>{profile.email}</a> · <a href={socials.linkedin} {...identity}>LinkedIn</a> ·{" "}
+          <a href={socials.github} {...identity}>
             GitHub
           </a>{" "}
           · <Link href="/resume">Résumé</Link>
         </p>
+      </section>
+      <section className="passport-media" aria-label={`Photos of ${profile.name}`}>
+        {seoImages.map((img) => (
+          <figure key={img.id}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={img.path}
+              alt={img.alt}
+              width={img.width}
+              height={img.height}
+              loading="lazy"
+              decoding="async"
+            />
+            <figcaption>{img.caption}</figcaption>
+          </figure>
+        ))}
       </section>
     </article>
   );
